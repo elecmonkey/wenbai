@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 文白对译标注系统（Wenbai）
 
-## Getting Started
+基于 Next.js App Router + Prisma + PostgreSQL 的文言文/白话文对译语料标注平台。
 
-First, run the development server:
+## 功能概览
+
+- 资料库（repo）管理：创建、重命名、删除
+- 条目（record）管理：文言文原文、白话文译文、元信息
+- 词元标注：词性（POS）、句法角色、文白词元对齐、词元关系分类
+- 支持自动保存、快捷键（Ctrl/⌘+S）
+
+## 开发环境
+
+### 1. 克隆仓库
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repo-url>
+cd wenbai
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 安装依赖
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. 配置环境变量
 
-## Learn More
+复制 `.env.example`，创建 `.env`：
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cp .env.example .env
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+将 `DATABASE_URL` 替换为实际的 PostgreSQL 连接串，例如：
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+DATABASE_URL="postgresql://user:password@host:port/database"
+```
 
-## Deploy on Vercel
+> 提示：项目使用 Prisma Adapter + `engineType = client`，适用于 Edge/Serverless 环境。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. 数据库处理
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+将 Prisma schema 同步到数据库：
+
+```bash
+pnpm prisma db push
+```
+
+然后生成 Prisma Client：
+
+```bash
+pnpm prisma:generate
+```
+
+### 5. 运行开发服务器
+
+```bash
+pnpm dev
+```
+
+打开 [http://localhost:3000](http://localhost:3000) 即可预览。
