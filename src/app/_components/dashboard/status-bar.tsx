@@ -33,7 +33,7 @@ export function StatusBar() {
   }, [activeRepoId, activeRecordId, recordDirty, recordSaving, repos, records]);
 
   return (
-    <footer className="border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-500">
+    <footer className="border-t border-neutral-200 bg-white px-4 py-3 text-xs text-neutral-500">
       {statusText}
     </footer>
   );
