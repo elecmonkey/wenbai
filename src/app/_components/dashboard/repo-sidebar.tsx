@@ -21,6 +21,7 @@ export function RepoSidebar() {
   const openRepoIds = useDashboardStore((state) => state.openRepoIds);
   const openRepoTab = useDashboardStore((state) => state.openRepoTab);
   const closeRepoTab = useDashboardStore((state) => state.closeRepoTab);
+  const requestSave = useDashboardStore((state) => state.requestSave);
 
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const [menuState, setMenuState] = useState<{
@@ -83,6 +84,10 @@ export function RepoSidebar() {
     try {
       const result = await createRepo.mutateAsync(trimmed);
       if (result?.id) {
+        const saved = await requestSave();
+        if (!saved) {
+          return;
+        }
         openRepoTab(result.id);
       }
     } catch (error) {
@@ -110,6 +115,8 @@ export function RepoSidebar() {
     }
 
     try {
+      const saved = await requestSave();
+      if (!saved) return;
       await renameRepo.mutateAsync({ id: repoId, name: trimmed });
     } catch (error) {
       const message =
@@ -127,6 +134,10 @@ export function RepoSidebar() {
     if (!confirmed) return;
 
     try {
+      if (repoId === activeRepoId) {
+        const saved = await requestSave();
+        if (!saved) return;
+      }
       await deleteRepo.mutateAsync(repoId);
       closeRepoTab(repoId);
     } catch (error) {
@@ -195,7 +206,11 @@ export function RepoSidebar() {
             {repos.map((repo) => (
               <li key={repo.id}>
                 <button
-                  onClick={() => openRepoTab(repo.id)}
+                  onClick={() => void (async () => {
+                    const saved = await requestSave();
+                    if (!saved) return;
+                    openRepoTab(repo.id);
+                  })()}
                   onContextMenu={(event) => openContextMenu(event, repo.id)}
                   className={`flex w-full items-center rounded px-3 py-2 text-left transition ${
                     repo.id === activeRepoId

@@ -20,6 +20,9 @@ type DashboardState = {
     activeRecordId: number | null,
   ) => void;
   reset: () => void;
+  registerSaveHandler: (handler: (() => Promise<boolean>) | null) => void;
+  requestSave: () => Promise<boolean>;
+  saveHandler: (() => Promise<boolean>) | null;
 };
 
 export const useDashboardStore = create<DashboardState>()((set, get) => ({
@@ -28,6 +31,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
   activeRecordId: null,
   recordDirty: false,
   recordSaving: false,
+  saveHandler: null,
   openRepoTab: (repoId) =>
     set((state) => {
       if (state.openRepoIds.includes(repoId)) {
@@ -107,6 +111,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
       activeRecordId,
       recordDirty: false,
       recordSaving: false,
+      saveHandler: null,
     }),
   reset: () =>
     set({
@@ -115,5 +120,19 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
       activeRecordId: null,
       recordDirty: false,
       recordSaving: false,
+      saveHandler: null,
     }),
+  registerSaveHandler: (handler) => set({ saveHandler: handler }),
+  requestSave: async () => {
+    const handler = get().saveHandler;
+    if (!handler) {
+      return true;
+    }
+    try {
+      return await handler();
+    } catch (error) {
+      console.error('保存当前条目失败', error);
+      return false;
+    }
+  },
 }));

@@ -14,6 +14,7 @@ export function RecordListPanel() {
   const setActiveRecordId = useDashboardStore(
     (state) => state.setActiveRecordId,
   );
+  const requestSave = useDashboardStore((state) => state.requestSave);
 
   const {
     data: records = [],
@@ -28,15 +29,23 @@ export function RecordListPanel() {
   useEffect(() => {
     if (!activeRepoId || !records.length) {
       if (activeRecordId !== null) {
-        setActiveRecordId(null);
+        void (async () => {
+          const saved = await requestSave();
+          if (!saved) return;
+          setActiveRecordId(null);
+        })();
       }
       return;
     }
 
     if (!records.some((record) => record.id === activeRecordId)) {
-      setActiveRecordId(records[0].id);
+      void (async () => {
+        const saved = await requestSave();
+        if (!saved) return;
+        setActiveRecordId(records[0].id);
+      })();
     }
-  }, [records, activeRecordId, activeRepoId, setActiveRecordId]);
+  }, [records, activeRecordId, activeRepoId, setActiveRecordId, requestSave]);
 
   const handleCreateRecord = async () => {
     if (!activeRepoId) {
@@ -48,6 +57,8 @@ export function RecordListPanel() {
     if (!source) return;
 
     try {
+      const saved = await requestSave();
+      if (!saved) return;
       const result = await createRecord.mutateAsync({
         repoId: activeRepoId,
         source: source.trim(),
@@ -106,7 +117,14 @@ export function RecordListPanel() {
             {records.map((record) => (
               <li key={record.id}>
                 <button
-                  onClick={() => setActiveRecordId(record.id)}
+                  onClick={() => void (async () => {
+                    if (record.id === activeRecordId) {
+                      return;
+                    }
+                    const saved = await requestSave();
+                    if (!saved) return;
+                    setActiveRecordId(record.id);
+                  })()}
                   className={`w-full rounded px-3 py-2 text-left transition ${
                     record.id === activeRecordId
                       ? 'bg-blue-50 text-blue-700'

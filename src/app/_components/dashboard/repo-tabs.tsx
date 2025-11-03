@@ -11,6 +11,7 @@ export function RepoTabs() {
     (state) => state.activateRepoTab,
   );
   const closeRepoTab = useDashboardStore((state) => state.closeRepoTab);
+  const requestSave = useDashboardStore((state) => state.requestSave);
 
   const repoMap = new Map(repos.map((repo) => [repo.id, repo]));
 
@@ -41,7 +42,14 @@ export function RepoTabs() {
                   }`}
                 >
                   <button
-                    onClick={() => activateRepoTab(repoId)}
+                    onClick={() => void (async () => {
+                      if (repoId === activeRepoId) {
+                        return;
+                      }
+                      const saved = await requestSave();
+                      if (!saved) return;
+                      activateRepoTab(repoId);
+                    })()}
                     className="flex min-w-0 flex-1 items-center px-3 text-left"
                   >
                     <span className="truncate">{repo.name}</span>
@@ -49,7 +57,13 @@ export function RepoTabs() {
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
-                      closeRepoTab(repoId);
+                      void (async () => {
+                        if (repoId === activeRepoId) {
+                          const saved = await requestSave();
+                          if (!saved) return;
+                        }
+                        closeRepoTab(repoId);
+                      })();
                     }}
                     className={`px-2 text-base ${
                       isActive
