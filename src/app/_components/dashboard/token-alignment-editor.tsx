@@ -94,9 +94,9 @@ export function TokenAlignmentEditor({
       segments.push({
         key: `${item.source_id}-${item.target_id}`,
         x1: sourceRect.left - contentRect.left + sourceRect.width / 2,
-        y1: sourceRect.top - contentRect.top + sourceRect.height / 2,
+        y1: sourceRect.top - contentRect.top + sourceRect.height - 2,
         x2: targetRect.left - contentRect.left + targetRect.width / 2,
-        y2: targetRect.top - contentRect.top + targetRect.height / 2,
+        y2: targetRect.top - contentRect.top + 2,
         relation: item.relation_type,
       });
     });
