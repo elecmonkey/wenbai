@@ -316,7 +316,7 @@ export function TokenAlignmentEditor({
               </svg>
             )}
 
-            <div className="flex min-w-max flex-nowrap justify-start gap-6 pb-14">
+            <div className="flex min-w-max flex-nowrap justify-start gap-3 pb-10">
               {sourceTokens.length === 0 ? (
                 <span className="text-xs text-neutral-400">暂无文言词元</span>
               ) : (
@@ -343,7 +343,7 @@ export function TokenAlignmentEditor({
               )}
             </div>
 
-            <div className="flex min-w-max flex-nowrap justify-start gap-6 pt-14">
+            <div className="flex min-w-max flex-nowrap justify-start gap-3 pt-10">
               {targetTokens.length === 0 ? (
                 <span className="text-xs text-neutral-400">暂无白话词元</span>
               ) : (
