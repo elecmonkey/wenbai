@@ -7,9 +7,8 @@ import {
   useUpdateRecordMutation,
 } from '@/app/_queries/records';
 import { ApiError } from '@/lib/api-client';
-import type { RecordDetailPayload, Token } from '@/types/dashboard';
-
-const emptyJson = '[]';
+import type { Alignment, RecordDetailPayload, Token } from '@/types/dashboard';
+import { TokenAlignmentEditor } from './token-alignment-editor';
 
 const joinTokensWithSlash = (tokens: Token[] | undefined, fallback: string) => {
   if (tokens && tokens.length > 0) {
@@ -40,9 +39,6 @@ const buildTokensFromValue = (value: string, previous: Token[]) => {
   });
 };
 
-const tokensToJson = (tokens: Token[]) =>
-  JSON.stringify(tokens ?? [], null, 2);
-
 const stripSlashes = (value: string) => value.replaceAll('/', '');
 
 export function RecordEditor() {
@@ -63,7 +59,7 @@ export function RecordEditor() {
   const [targetValue, setTargetValue] = useState('');
   const [sourceTokens, setSourceTokens] = useState<Token[]>([]);
   const [targetTokens, setTargetTokens] = useState<Token[]>([]);
-  const [alignmentValue, setAlignmentValue] = useState<string>(emptyJson);
+  const [alignment, setAlignment] = useState<Alignment[]>([]);
 
   const lastLoadedRecordId = useRef<number | null>(null);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
@@ -76,7 +72,7 @@ export function RecordEditor() {
         setTargetValue('');
         setSourceTokens([]);
         setTargetTokens([]);
-        setAlignmentValue(emptyJson);
+        setAlignment([]);
         setRecordDirty(false);
         lastLoadedRecordId.current = null;
         return;
@@ -93,9 +89,13 @@ export function RecordEditor() {
       );
       setSourceValue(displaySource);
       setTargetValue(displayTarget);
-      setSourceTokens(detail.source_tokens ?? buildTokensFromValue(displaySource, []));
-      setTargetTokens(detail.target_tokens ?? buildTokensFromValue(displayTarget, []));
-      setAlignmentValue(JSON.stringify(detail.alignment ?? [], null, 2));
+      setSourceTokens(
+        detail.source_tokens ?? buildTokensFromValue(displaySource, []),
+      );
+      setTargetTokens(
+        detail.target_tokens ?? buildTokensFromValue(displayTarget, []),
+      );
+      setAlignment(detail.alignment ?? []);
       setRecordDirty(false);
       lastLoadedRecordId.current = detail.id;
     },
@@ -152,21 +152,6 @@ export function RecordEditor() {
     return null;
   }, [activeRecordId, activeRepoId]);
 
-  const parseAlignmentJson = useCallback((raw: string) => {
-    if (!raw.trim()) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        throw new Error('对齐关系必须是数组。');
-      }
-      return parsed;
-    } catch (error) {
-      throw new Error(
-        `对齐关系解析失败：${(error as Error).message}`,
-      );
-    }
-  }, []);
-
   const performSave = useCallback((): Promise<boolean> => {
     if (savePromiseRef.current) {
       return savePromiseRef.current;
@@ -182,8 +167,6 @@ export function RecordEditor() {
 
     const promise = (async () => {
       try {
-        const alignment = parseAlignmentJson(alignmentValue);
-
         const sanitizedSource = stripSlashes(sourceValue).trim();
         if (!sanitizedSource) {
           window.alert('文言原文不能为空。');
@@ -236,9 +219,8 @@ export function RecordEditor() {
   }, [
     activeRecordId,
     activeRepoId,
-    alignmentValue,
+    alignment,
     metaValue,
-    parseAlignmentJson,
     recordDirty,
     sourceTokens,
     sourceValue,
@@ -352,8 +334,15 @@ export function RecordEditor() {
             onChange={(event) => {
               const nextValue = event.target.value;
               setSourceValue(nextValue);
-              setSourceTokens((prev) =>
-                buildTokensFromValue(nextValue, prev),
+              const nextTokens = buildTokensFromValue(
+                nextValue,
+                sourceTokens,
+              );
+              setSourceTokens(nextTokens);
+              setAlignment((prev) =>
+                prev.filter((item) =>
+                  nextTokens.some((token) => token.id === item.source_id),
+                ),
               );
               setDirty();
             }}
@@ -371,8 +360,15 @@ export function RecordEditor() {
             onChange={(event) => {
               const nextValue = event.target.value;
               setTargetValue(nextValue);
-              setTargetTokens((prev) =>
-                buildTokensFromValue(nextValue, prev),
+              const nextTokens = buildTokensFromValue(
+                nextValue,
+                targetTokens,
+              );
+              setTargetTokens(nextTokens);
+              setAlignment((prev) =>
+                prev.filter((item) =>
+                  nextTokens.some((token) => token.id === item.target_id),
+                ),
               );
               setDirty();
             }}
@@ -396,53 +392,32 @@ export function RecordEditor() {
           />
         </section>
 
-        <section className="flex flex-col gap-4 pb-12">
-          <header className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs uppercase tracking-wide text-neutral-500">
-              <span>词汇与对齐标注</span>
-            </div>
-            <div className="text-xs text-neutral-400">
-              使用 JSON 数组格式进行编辑
-            </div>
-          </header>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="flex flex-col rounded border border-neutral-200 bg-white shadow-sm">
-              <div className="border-b border-neutral-200 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500">
-                文言词汇
-              </div>
-              <textarea
-                value={tokensToJson(sourceTokens)}
-                readOnly
-                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col rounded border border-neutral-200 bg-white shadow-sm">
-              <div className="border-b border-neutral-200 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500">
-                白话词汇
-              </div>
-              <textarea
-                value={tokensToJson(targetTokens)}
-                readOnly
-                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col rounded border border-neutral-200 bg-white shadow-sm">
-              <div className="border-b border-neutral-200 px-3 py-2 text-xs uppercase tracking-wide text-neutral-500">
-                对齐关系
-              </div>
-              <textarea
-                value={alignmentValue}
-                onChange={(event) => {
-                  setAlignmentValue(event.target.value);
-                  setDirty();
-                }}
-                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-          </div>
+        <section className="pb-12">
+          <TokenAlignmentEditor
+            sourceTokens={sourceTokens}
+            targetTokens={targetTokens}
+            alignment={alignment}
+            onUpdateSourceToken={(index, token) => {
+              setSourceTokens((prev) => {
+                const next = [...prev];
+                next[index] = token;
+                return next;
+              });
+              setRecordDirty(true);
+            }}
+            onUpdateTargetToken={(index, token) => {
+              setTargetTokens((prev) => {
+                const next = [...prev];
+                next[index] = token;
+                return next;
+              });
+              setRecordDirty(true);
+            }}
+            onAlignmentChange={(nextAlignment) => {
+              setAlignment(nextAlignment);
+              setRecordDirty(true);
+            }}
+          />
         </section>
       </div>
     </div>
