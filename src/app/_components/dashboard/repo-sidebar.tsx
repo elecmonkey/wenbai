@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
 import {
   useCreateRepoMutation,
@@ -21,6 +22,17 @@ export function RepoSidebar() {
     (state) => state.setActiveRepoId,
   );
 
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const [menuState, setMenuState] = useState<{
+    repoId: number;
+    anchor: { x: number; y: number };
+  } | null>(null);
+
+  const contextRepo = useMemo(
+    () => repos.find((repo) => repo.id === menuState?.repoId) ?? null,
+    [menuState?.repoId, repos],
+  );
+
   useEffect(() => {
     if (isLoading) return;
     if (!repos.length) {
@@ -33,6 +45,27 @@ export function RepoSidebar() {
       setActiveRepoId(repos[0].id);
     }
   }, [repos, isLoading, activeRepoId, setActiveRepoId]);
+
+  useEffect(() => {
+    if (!menuState) return;
+
+    const dismiss = () => setMenuState(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuState(null);
+      }
+    };
+
+    window.addEventListener('click', dismiss);
+    window.addEventListener('contextmenu', dismiss);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('click', dismiss);
+      window.removeEventListener('contextmenu', dismiss);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuState]);
 
   const handleCreateRepo = async () => {
     const input = window.prompt('请输入新仓库名称');
@@ -105,8 +138,36 @@ export function RepoSidebar() {
     }
   };
 
+  const openContextMenu = (event: MouseEvent<HTMLButtonElement>, repoId: number) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const sidebarRect = sidebarRef.current?.getBoundingClientRect();
+    const anchor = sidebarRect
+      ? {
+          x: event.clientX - sidebarRect.left,
+          y: event.clientY - sidebarRect.top,
+        }
+      : { x: event.clientX, y: event.clientY };
+    setMenuState({ repoId, anchor });
+  };
+
+  const handleRenameAction = () => {
+    if (!menuState || !contextRepo) return;
+    setMenuState(null);
+    void handleRenameRepo(menuState.repoId, contextRepo.name);
+  };
+
+  const handleDeleteAction = () => {
+    if (!menuState || !contextRepo) return;
+    setMenuState(null);
+    void handleDeleteRepo(menuState.repoId, contextRepo.name);
+  };
+
   return (
-    <aside className="flex w-64 flex-col border-r border-neutral-200 bg-white">
+    <aside
+      ref={sidebarRef}
+      className="relative flex w-64 flex-col border-r border-neutral-200 bg-white"
+    >
       <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-4">
         <h1 className="text-base font-semibold text-neutral-800">
           文白对译资料库
@@ -135,6 +196,7 @@ export function RepoSidebar() {
               <li key={repo.id}>
                 <button
                   onClick={() => setActiveRepoId(repo.id)}
+                  onContextMenu={(event) => openContextMenu(event, repo.id)}
                   className={`flex w-full items-center rounded px-3 py-2 text-left transition ${
                     repo.id === activeRepoId
                       ? 'bg-blue-50 text-blue-700'
@@ -143,22 +205,6 @@ export function RepoSidebar() {
                 >
                   <span className="truncate">{repo.name}</span>
                 </button>
-                <div className="mt-1 flex gap-2 px-3 text-xs text-neutral-500">
-                  <button
-                    onClick={() => handleRenameRepo(repo.id, repo.name)}
-                    className="hover:text-neutral-700"
-                    disabled={renameRepo.isPending}
-                  >
-                    重命名
-                  </button>
-                  <button
-                    onClick={() => handleDeleteRepo(repo.id, repo.name)}
-                    className="hover:text-red-500"
-                    disabled={deleteRepo.isPending}
-                  >
-                    删除
-                  </button>
-                </div>
               </li>
             ))}
           </ul>
@@ -168,6 +214,31 @@ export function RepoSidebar() {
       <div className="border-t border-neutral-200 px-4 py-3 text-xs text-neutral-500">
         仓库总数：{repos.length}
       </div>
+
+      {menuState && contextRepo && (
+        <div
+          style={{
+            top: menuState.anchor.y,
+            left: menuState.anchor.x,
+          }}
+          className="absolute z-20 w-40 overflow-hidden rounded border border-neutral-200 bg-white shadow-lg"
+        >
+          <button
+            onClick={handleRenameAction}
+            disabled={renameRepo.isPending}
+            className="flex w-full items-center px-3 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+          >
+            重命名
+          </button>
+          <button
+            onClick={handleDeleteAction}
+            disabled={deleteRepo.isPending}
+            className="flex w-full items-center px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+          >
+            删除
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
