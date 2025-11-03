@@ -104,9 +104,6 @@ export function RecordEditor() {
 
   useEffect(() => {
     if (!recordQuery.isSuccess) {
-      if (!recordQuery.isFetching && !recordQuery.data) {
-        applyRecordData(null);
-      }
       return;
     }
 
@@ -117,20 +114,12 @@ export function RecordEditor() {
       return;
     }
 
-    applyRecordData(recordQuery.data);
-  }, [
-    applyRecordData,
-    recordDirty,
-    recordQuery.data,
-    recordQuery.isFetching,
-    recordQuery.isSuccess,
-  ]);
+    const timeout = window.setTimeout(() => {
+      applyRecordData(recordQuery.data);
+    }, 0);
 
-  useEffect(() => {
-    if (!activeRecordId) {
-      applyRecordData(null);
-    }
-  }, [activeRecordId, applyRecordData]);
+    return () => window.clearTimeout(timeout);
+  }, [applyRecordData, recordDirty, recordQuery.data, recordQuery.isSuccess]);
 
   useEffect(() => {
     setRecordSaving(updateRecord.isPending);

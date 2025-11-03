@@ -6,6 +6,8 @@ export type Repo = {
 export type RecordSummary = {
   id: number;
   source: string;
+  target?: string | null;
+  meta?: string | null;
 };
 
 export type Token = {

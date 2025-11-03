@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
   try {
     const records = await prisma.record.findMany({
       where: { repoId },
-      select: { id: true, source: true },
+      select: { id: true, source: true, target: true, meta: true },
       orderBy: { id: "asc" },
     });
 
