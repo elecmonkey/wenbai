@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Repo {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  records   Record[]
+
+  @@map("repos")
+}
+
+model Record {
+  id        Int           @id @default(autoincrement())
+  repoId    Int           @map("repo_id")
+  source    String
+  target    String?
+  meta      String?
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  detail    RecordDetail?
+
+  repo Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@index([repoId])
+  @@map("records")
+}
+
+model RecordDetail {
+  recordId     Int      @id @map("record_id")
+  sourceTokens Json?    @map("source_tokens")
+  targetTokens Json?    @map("target_tokens")
+  alignment    Json?
+
+  record Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@map("record_details")
+}
