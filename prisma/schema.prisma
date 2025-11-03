@@ -30,6 +30,7 @@ model Record {
   repo Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
 
   @@index([repoId])
+  @@unique([repoId, source], map: "records_repo_id_source_key")
   @@map("records")
 }
 

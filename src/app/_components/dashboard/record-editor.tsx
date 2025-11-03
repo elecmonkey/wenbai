@@ -338,7 +338,7 @@ export function RecordEditor() {
           撤销更改
         </button>
         <span className="ml-auto text-xs text-neutral-500">
-          条目 #{activeRecordId}
+          当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
         </span>
       </div>
 

@@ -69,11 +69,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const record = await prisma.record.create({
       data: { repoId, source },
-      select: { id: true },
+      select: { id: true, source: true, target: true, meta: true },
     });
 
     return NextResponse.json(
-      { message: "success", data: { id: record.id } },
+      { message: "success", data: record },
       { status: 201 },
     );
   } catch (error) {
@@ -84,6 +84,15 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json(
         { message: "error", error: "Repository not found" },
         { status: 404 },
+      );
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { message: "error", error: "该资料库已存在同名条目" },
+        { status: 409 },
       );
     }
 

@@ -165,6 +165,15 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ message: "success" });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { message: "error", error: "该资料库已存在同名条目" },
+        { status: 409 },
+      );
+    }
     console.error(`PUT /api/repos/${rawRepoId}/records/${rawRecordId} failed`, error);
     return NextResponse.json(
       { message: "error", error: "Internal Server Error" },

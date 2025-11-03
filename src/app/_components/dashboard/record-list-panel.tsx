@@ -132,9 +132,11 @@ export function RecordListPanel() {
                   }`}
                 >
                   <p className="truncate text-sm">
-                    {record.source || `条目 #${record.id}`}
+                    {record.source || '未命名条目'}
                   </p>
-                  <p className="text-xs text-neutral-400">#{record.id}</p>
+                  <p className="text-xs text-neutral-400">
+                    {record.meta ?? ''}
+                  </p>
                 </button>
               </li>
             ))}
