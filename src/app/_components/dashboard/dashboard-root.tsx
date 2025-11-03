@@ -42,16 +42,20 @@ export function DashboardRoot({ initialData }: DashboardRootProps) {
       );
     }
 
-    initializeStore(initialData.activeRepoId, initialData.activeRecordId);
+    initializeStore(
+      initialData.openRepoIds,
+      initialData.activeRepoId,
+      initialData.activeRecordId,
+    );
     hasInitialized.current = true;
   }, [initialData, initializeStore, queryClient]);
 
   return (
     <div className="flex h-screen bg-neutral-100 text-neutral-900">
       <RepoSidebar />
-      <section className="flex flex-1 flex-col">
+      <section className="flex flex-1 min-w-0 flex-col">
         <RepoTabs />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 min-w-0 overflow-hidden">
           <RecordListPanel />
           <RecordEditor />
         </div>

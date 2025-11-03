@@ -12,15 +12,15 @@ import {
 import { ApiError } from '@/lib/api-client';
 
 export function RepoSidebar() {
-  const { data: repos = [], isLoading } = useReposQuery();
+  const { data: repos = [], isLoading, isFetching } = useReposQuery();
   const createRepo = useCreateRepoMutation();
   const renameRepo = useRenameRepoMutation();
   const deleteRepo = useDeleteRepoMutation();
 
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
-  const setActiveRepoId = useDashboardStore(
-    (state) => state.setActiveRepoId,
-  );
+  const openRepoIds = useDashboardStore((state) => state.openRepoIds);
+  const openRepoTab = useDashboardStore((state) => state.openRepoTab);
+  const closeRepoTab = useDashboardStore((state) => state.closeRepoTab);
 
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const [menuState, setMenuState] = useState<{
@@ -34,17 +34,19 @@ export function RepoSidebar() {
   );
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!repos.length) {
-      if (activeRepoId !== null) {
-        setActiveRepoId(null);
+    if (isLoading || isFetching) return;
+    const validIds = new Set(repos.map((repo) => repo.id));
+
+    openRepoIds.forEach((id) => {
+      if (!validIds.has(id)) {
+        closeRepoTab(id);
       }
-      return;
+    });
+
+    if (activeRepoId !== null && !validIds.has(activeRepoId)) {
+      closeRepoTab(activeRepoId);
     }
-    if (!repos.some((repo) => repo.id === activeRepoId)) {
-      setActiveRepoId(repos[0].id);
-    }
-  }, [repos, isLoading, activeRepoId, setActiveRepoId]);
+  }, [repos, isLoading, isFetching, openRepoIds, activeRepoId, closeRepoTab]);
 
   useEffect(() => {
     if (!menuState) return;
@@ -81,7 +83,7 @@ export function RepoSidebar() {
     try {
       const result = await createRepo.mutateAsync(trimmed);
       if (result?.id) {
-        setActiveRepoId(result.id);
+        openRepoTab(result.id);
       }
     } catch (error) {
       const message =
@@ -126,9 +128,7 @@ export function RepoSidebar() {
 
     try {
       await deleteRepo.mutateAsync(repoId);
-      if (activeRepoId === repoId) {
-        setActiveRepoId(null);
-      }
+      closeRepoTab(repoId);
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -195,7 +195,7 @@ export function RepoSidebar() {
             {repos.map((repo) => (
               <li key={repo.id}>
                 <button
-                  onClick={() => setActiveRepoId(repo.id)}
+                  onClick={() => openRepoTab(repo.id)}
                   onContextMenu={(event) => openContextMenu(event, repo.id)}
                   className={`flex w-full items-center rounded px-3 py-2 text-left transition ${
                     repo.id === activeRepoId

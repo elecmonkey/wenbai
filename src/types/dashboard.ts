@@ -33,6 +33,7 @@ export type RecordDetailPayload = {
 
 export type DashboardInitialData = {
   repos: Repo[];
+  openRepoIds: number[];
   activeRepoId: number | null;
   activeRecordId: number | null;
   records: {
