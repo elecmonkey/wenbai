@@ -13,6 +13,7 @@ model Repo {
   createdAt DateTime  @default(now()) @map("created_at")
   records   Record[]
 
+  @@unique([name], map: "repos_name_key")
   @@map("repos")
 }
 

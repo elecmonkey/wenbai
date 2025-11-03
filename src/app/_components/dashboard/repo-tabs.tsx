@@ -24,14 +24,13 @@ export function RepoTabs() {
             <button
               key={repo.id}
               onClick={() => setActiveRepoId(repo.id)}
-              className={`flex items-center gap-2 rounded-t px-3 py-2 transition ${
+              className={`flex items-center rounded-t px-3 py-2 transition ${
                 repo.id === activeRepoId
                   ? 'bg-blue-50 text-blue-700 border border-blue-200'
                   : 'bg-transparent text-neutral-500 hover:bg-neutral-100'
               }`}
             >
-              <span>{repo.name}</span>
-              <span className="text-xs text-neutral-400">#{repo.id}</span>
+              <span className="truncate">{repo.name}</span>
             </button>
           ))
         )}

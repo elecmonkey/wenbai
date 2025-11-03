@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -31,6 +32,18 @@ export async function POST(req: Request) {
       );
     }
 
+    const existing = await prisma.repo.findFirst({
+      where: { name },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { message: "error", error: "仓库名称已存在" },
+        { status: 409 },
+      );
+    }
+
     const repo = await prisma.repo.create({ data: { name } });
 
     return NextResponse.json(
@@ -38,6 +51,16 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { message: "error", error: "仓库名称已存在" },
+        { status: 409 },
+      );
+    }
+
     console.error("POST /api/repos failed", error);
     return NextResponse.json(
       { message: "error", error: "Internal Server Error" },

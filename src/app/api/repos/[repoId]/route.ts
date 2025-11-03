@@ -36,6 +36,37 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       );
     }
 
+    const currentRepo = await prisma.repo.findUnique({
+      where: { id: repoId },
+      select: { id: true, name: true },
+    });
+
+    if (!currentRepo) {
+      return NextResponse.json(
+        { message: "error", error: "Repository not found" },
+        { status: 404 },
+      );
+    }
+
+    if (name === currentRepo.name) {
+      return NextResponse.json({ message: "success" });
+    }
+
+    const conflict = await prisma.repo.findFirst({
+      where: {
+        name,
+        NOT: { id: repoId },
+      },
+      select: { id: true },
+    });
+
+    if (conflict) {
+      return NextResponse.json(
+        { message: "error", error: "仓库名称已存在" },
+        { status: 409 },
+      );
+    }
+
     await prisma.repo.update({
       where: { id: repoId },
       data: { name },
@@ -50,6 +81,15 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       return NextResponse.json(
         { message: "error", error: "Repository not found" },
         { status: 404 },
+      );
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { message: "error", error: "仓库名称已存在" },
+        { status: 409 },
       );
     }
 

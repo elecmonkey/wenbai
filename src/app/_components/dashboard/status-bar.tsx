@@ -12,10 +12,11 @@ export function StatusBar() {
   const recordSaving = useDashboardStore((state) => state.recordSaving);
 
   const statusText = useMemo(() => {
-    const repoName = activeRepoId
-      ? repos.find((repo) => repo.id === activeRepoId)?.name ??
-        `#${activeRepoId}`
-      : '未选择仓库';
+    const repoName =
+      activeRepoId && repos.length
+        ? repos.find((repo) => repo.id === activeRepoId)?.name ??
+          '仓库不存在'
+        : '未选择仓库';
     const recordText = activeRecordId
       ? `条目：#${activeRecordId}`
       : '未选择条目';

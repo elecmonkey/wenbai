@@ -35,11 +35,18 @@ export function RepoSidebar() {
   }, [repos, isLoading, activeRepoId, setActiveRepoId]);
 
   const handleCreateRepo = async () => {
-    const name = window.prompt('请输入新仓库名称');
-    if (!name) return;
+    const input = window.prompt('请输入新仓库名称');
+    if (!input) return;
+    const trimmed = input.trim();
+    if (!trimmed) return;
+
+    if (repos.some((repo) => repo.name === trimmed)) {
+      window.alert('仓库名称已存在');
+      return;
+    }
 
     try {
-      const result = await createRepo.mutateAsync(name.trim());
+      const result = await createRepo.mutateAsync(trimmed);
       if (result?.id) {
         setActiveRepoId(result.id);
       }
@@ -53,11 +60,22 @@ export function RepoSidebar() {
   };
 
   const handleRenameRepo = async (repoId: number, currentName: string) => {
-    const name = window.prompt('请输入新的仓库名称', currentName);
-    if (!name || name.trim() === currentName) return;
+    const input = window.prompt('请输入新的仓库名称', currentName);
+    if (!input) return;
+    const trimmed = input.trim();
+    if (!trimmed || trimmed === currentName) return;
+
+    if (
+      repos.some(
+        (repo) => repo.name === trimmed && repo.id !== repoId,
+      )
+    ) {
+      window.alert('仓库名称已存在');
+      return;
+    }
 
     try {
-      await renameRepo.mutateAsync({ id: repoId, name: name.trim() });
+      await renameRepo.mutateAsync({ id: repoId, name: trimmed });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -117,14 +135,13 @@ export function RepoSidebar() {
               <li key={repo.id}>
                 <button
                   onClick={() => setActiveRepoId(repo.id)}
-                  className={`flex w-full items-center justify-between rounded px-3 py-2 text-left transition ${
+                  className={`flex w-full items-center rounded px-3 py-2 text-left transition ${
                     repo.id === activeRepoId
                       ? 'bg-blue-50 text-blue-700'
                       : 'hover:bg-neutral-100'
                   }`}
                 >
                   <span className="truncate">{repo.name}</span>
-                  <span className="text-xs text-neutral-400">#{repo.id}</span>
                 </button>
                 <div className="mt-1 flex gap-2 px-3 text-xs text-neutral-500">
                   <button
