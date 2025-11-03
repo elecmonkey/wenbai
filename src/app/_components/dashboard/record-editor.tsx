@@ -345,21 +345,6 @@ export function RecordEditor() {
       <div className="grid flex-1 grid-rows-[auto_auto_auto_1fr] gap-4 overflow-y-auto px-6 py-6 text-sm">
         <section className="space-y-2">
           <label className="block text-xs uppercase tracking-wide text-neutral-500">
-            元信息
-          </label>
-          <input
-            value={metaValue}
-            onChange={(event) => {
-              setMetaValue(event.target.value);
-              setDirty();
-            }}
-            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            placeholder="如：《论语·学而》"
-          />
-        </section>
-
-        <section className="space-y-2">
-          <label className="block text-xs uppercase tracking-wide text-neutral-500">
             文言原文
           </label>
           <textarea
@@ -393,6 +378,21 @@ export function RecordEditor() {
             }}
             rows={3}
             className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+        </section>
+
+        <section className="space-y-2">
+          <label className="block text-xs uppercase tracking-wide text-neutral-500">
+            元信息
+          </label>
+          <input
+            value={metaValue}
+            onChange={(event) => {
+              setMetaValue(event.target.value);
+              setDirty();
+            }}
+            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            placeholder="如：《论语·学而》"
           />
         </section>
 
