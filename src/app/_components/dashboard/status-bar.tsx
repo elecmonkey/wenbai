@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useReposQuery } from '@/app/_queries/repos';
 import { useRecordsQuery } from '@/app/_queries/records';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
+import { RepoInfoModal } from './repo-info-modal';
 
 export function StatusBar() {
   const { data: repos = [] } = useReposQuery();
@@ -12,6 +13,7 @@ export function StatusBar() {
   const recordDirty = useDashboardStore((state) => state.recordDirty);
   const recordSaving = useDashboardStore((state) => state.recordSaving);
   const { data: records = [] } = useRecordsQuery(activeRepoId);
+  const [repoInfoOpen, setRepoInfoOpen] = useState(false);
 
   const statusText = useMemo(() => {
     const repoName =
@@ -33,8 +35,20 @@ export function StatusBar() {
   }, [activeRepoId, activeRecordId, recordDirty, recordSaving, repos, records]);
 
   return (
-    <footer className="border-t border-neutral-200 bg-white px-4 py-3 text-xs text-neutral-500">
-      {statusText}
-    </footer>
+    <>
+      <footer className="flex items-center justify-between border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-500">
+        <span className="truncate pr-4">{statusText}</span>
+        <button
+          onClick={() => setRepoInfoOpen(true)}
+          className="shrink-0 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100"
+        >
+          关于本站
+        </button>
+      </footer>
+      <RepoInfoModal
+        open={repoInfoOpen}
+        onClose={() => setRepoInfoOpen(false)}
+      />
+    </>
   );
 }

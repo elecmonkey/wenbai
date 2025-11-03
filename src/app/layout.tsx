@@ -3,8 +3,9 @@ import "./globals.css";
 import { AppProviders } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Wenbai",
-  description: "待根据设计需求完善的 Wenbai 主站。",
+  title: "文白翻译语料库",
+  description:
+    "支持资料库管理、文白词元标注与对齐的标注平台。",
 };
 
 export default function RootLayout({
