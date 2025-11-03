@@ -7,9 +7,43 @@ import {
   useUpdateRecordMutation,
 } from '@/app/_queries/records';
 import { ApiError } from '@/lib/api-client';
-import type { RecordDetailPayload } from '@/types/dashboard';
+import type { RecordDetailPayload, Token } from '@/types/dashboard';
 
 const emptyJson = '[]';
+
+const joinTokensWithSlash = (tokens: Token[] | undefined, fallback: string) => {
+  if (tokens && tokens.length > 0) {
+    return tokens
+      .map((token) => (typeof token.word === 'string' ? token.word : ''))
+      .filter(Boolean)
+      .join('/');
+  }
+  return fallback ?? '';
+};
+
+const normalizeWords = (raw: string) =>
+  raw
+    .split('/')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
+const buildTokensFromValue = (value: string, previous: Token[]) => {
+  const words = normalizeWords(value);
+  return words.map((word, index) => {
+    const prev = previous[index];
+    return {
+      id: index + 1,
+      word,
+      pos: prev?.pos ?? null,
+      syntax_role: prev?.syntax_role ?? null,
+    };
+  });
+};
+
+const tokensToJson = (tokens: Token[]) =>
+  JSON.stringify(tokens ?? [], null, 2);
+
+const stripSlashes = (value: string) => value.replaceAll('/', '');
 
 export function RecordEditor() {
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
@@ -26,10 +60,8 @@ export function RecordEditor() {
   const [metaValue, setMetaValue] = useState('');
   const [sourceValue, setSourceValue] = useState('');
   const [targetValue, setTargetValue] = useState('');
-  const [sourceTokensValue, setSourceTokensValue] =
-    useState<string>(emptyJson);
-  const [targetTokensValue, setTargetTokensValue] =
-    useState<string>(emptyJson);
+  const [sourceTokens, setSourceTokens] = useState<Token[]>([]);
+  const [targetTokens, setTargetTokens] = useState<Token[]>([]);
   const [alignmentValue, setAlignmentValue] =
     useState<string>(emptyJson);
 
@@ -41,8 +73,8 @@ export function RecordEditor() {
         setMetaValue('');
         setSourceValue('');
         setTargetValue('');
-        setSourceTokensValue(emptyJson);
-        setTargetTokensValue(emptyJson);
+        setSourceTokens([]);
+        setTargetTokens([]);
         setAlignmentValue(emptyJson);
         setRecordDirty(false);
         lastLoadedRecordId.current = null;
@@ -50,14 +82,18 @@ export function RecordEditor() {
       }
 
       setMetaValue(detail.meta ?? '');
-      setSourceValue(detail.source ?? '');
-      setTargetValue(detail.target ?? '');
-      setSourceTokensValue(
-        JSON.stringify(detail.source_tokens ?? [], null, 2),
+      const displaySource = joinTokensWithSlash(
+        detail.source_tokens ?? undefined,
+        detail.source ?? '',
       );
-      setTargetTokensValue(
-        JSON.stringify(detail.target_tokens ?? [], null, 2),
+      const displayTarget = joinTokensWithSlash(
+        detail.target_tokens ?? undefined,
+        detail.target ?? '',
       );
+      setSourceValue(displaySource);
+      setTargetValue(displayTarget);
+      setSourceTokens(detail.source_tokens ?? buildTokensFromValue(displaySource, []));
+      setTargetTokens(detail.target_tokens ?? buildTokensFromValue(displayTarget, []));
       setAlignmentValue(JSON.stringify(detail.alignment ?? [], null, 2));
       setRecordDirty(false);
       lastLoadedRecordId.current = detail.id;
@@ -115,16 +151,18 @@ export function RecordEditor() {
     return null;
   }, [activeRecordId, activeRepoId]);
 
-  const parseJsonArray = (label: string, raw: string) => {
+  const parseAlignmentJson = (raw: string) => {
     if (!raw.trim()) return [];
     try {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) {
-        throw new Error(`${label} 必须是数组。`);
+        throw new Error('对齐关系必须是数组。');
       }
       return parsed;
     } catch (error) {
-      throw new Error(`${label} 解析失败：${(error as Error).message}`);
+      throw new Error(
+        `对齐关系解析失败：${(error as Error).message}`,
+      );
     }
   };
 
@@ -133,29 +171,41 @@ export function RecordEditor() {
       return;
     }
 
-    if (!sourceValue.trim()) {
+    if (!stripSlashes(sourceValue).trim()) {
       window.alert('文言原文不能为空。');
       return;
     }
 
     try {
-      const sourceTokens = parseJsonArray('文言词汇', sourceTokensValue);
-      const targetTokens = parseJsonArray('白话词汇', targetTokensValue);
-      const alignment = parseJsonArray('对齐关系', alignmentValue);
+      const alignment = parseAlignmentJson(alignmentValue);
+
+      const sanitizedSource = stripSlashes(sourceValue).trim();
+      const sanitizedTarget = stripSlashes(targetValue).trim();
+
+      const nextSourceTokens = buildTokensFromValue(
+        sourceValue,
+        sourceTokens,
+      );
+      const nextTargetTokens = buildTokensFromValue(
+        targetValue,
+        targetTokens,
+      );
 
       await updateRecord.mutateAsync({
         repoId: activeRepoId,
         recordId: activeRecordId,
         data: {
-          source: sourceValue.trim(),
-          target: targetValue.trim() ? targetValue : null,
+          source: sanitizedSource,
+          target: sanitizedTarget ? sanitizedTarget : null,
           meta: metaValue.trim() ? metaValue : null,
-          source_tokens: sourceTokens,
-          target_tokens: targetTokens,
+          source_tokens: nextSourceTokens,
+          target_tokens: nextTargetTokens,
           alignment,
         },
       });
 
+      setSourceTokens(nextSourceTokens);
+      setTargetTokens(nextTargetTokens);
       setRecordDirty(false);
     } catch (mutationError) {
       const message =
@@ -251,7 +301,11 @@ export function RecordEditor() {
           <textarea
             value={sourceValue}
             onChange={(event) => {
-              setSourceValue(event.target.value);
+              const nextValue = event.target.value;
+              setSourceValue(nextValue);
+              setSourceTokens((prev) =>
+                buildTokensFromValue(nextValue, prev),
+              );
               setDirty();
             }}
             rows={3}
@@ -266,7 +320,11 @@ export function RecordEditor() {
           <textarea
             value={targetValue}
             onChange={(event) => {
-              setTargetValue(event.target.value);
+              const nextValue = event.target.value;
+              setTargetValue(nextValue);
+              setTargetTokens((prev) =>
+                buildTokensFromValue(nextValue, prev),
+              );
               setDirty();
             }}
             rows={3}
@@ -290,12 +348,9 @@ export function RecordEditor() {
                 文言词汇
               </div>
               <textarea
-                value={sourceTokensValue}
-                onChange={(event) => {
-                  setSourceTokensValue(event.target.value);
-                  setDirty();
-                }}
-                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                value={tokensToJson(sourceTokens)}
+                readOnly
+                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none"
               />
             </div>
 
@@ -304,12 +359,9 @@ export function RecordEditor() {
                 白话词汇
               </div>
               <textarea
-                value={targetTokensValue}
-                onChange={(event) => {
-                  setTargetTokensValue(event.target.value);
-                  setDirty();
-                }}
-                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                value={tokensToJson(targetTokens)}
+                readOnly
+                className="h-48 w-full flex-1 rounded-b bg-transparent px-3 py-2 text-xs leading-relaxed text-neutral-800 outline-none"
               />
             </div>
 
