@@ -29,7 +29,6 @@ const SYNTAX_OPTIONS = [
   '状语',
   '补语',
   '并列',
-  '连词',
   '引用',
   '其他',
 ];
@@ -55,6 +54,7 @@ type LineSegment = {
 };
 
 const toSelectValue = (value?: string | null) => (value && value.length > 0 ? value : '-');
+const getTokenId = (token: Token, index: number) => token.id ?? index + 1;
 
 export function TokenAlignmentEditor({
   sourceTokens,
@@ -64,7 +64,8 @@ export function TokenAlignmentEditor({
   onUpdateTargetToken,
   onAlignmentChange,
 }: TokenAlignmentEditorProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const sourceRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const targetRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const [pendingSourceId, setPendingSourceId] = useState<number | null>(null);
@@ -72,44 +73,39 @@ export function TokenAlignmentEditor({
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [lineSegments, setLineSegments] = useState<LineSegment[]>([]);
 
-  const getSourceTokenById = useCallback(
-    (id: number) => sourceTokens.find((token) => token.id === id),
-    [sourceTokens],
-  );
-  const getTargetTokenById = useCallback(
-    (id: number) => targetTokens.find((token) => token.id === id),
-    [targetTokens],
-  );
-
   const computeLayout = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const containerRect = container.getBoundingClientRect();
-    const nextLines: LineSegment[] = [];
+    const scrollContainer = scrollContainerRef.current;
+    const content = contentRef.current;
+    if (!scrollContainer || !content) return;
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+
+    const segments: LineSegment[] = [];
 
     alignment.forEach((item) => {
       const sourceEl = sourceRefs.current[item.source_id];
       const targetEl = targetRefs.current[item.target_id];
-      if (!sourceEl || !targetEl) {
-        return;
-      }
+      if (!sourceEl || !targetEl) return;
+
       const sourceRect = sourceEl.getBoundingClientRect();
       const targetRect = targetEl.getBoundingClientRect();
 
-      nextLines.push({
+      segments.push({
         key: `${item.source_id}-${item.target_id}`,
-        x1: sourceRect.left - containerRect.left + sourceRect.width / 2,
-        y1: sourceRect.top - containerRect.top + sourceRect.height / 2,
-        x2: targetRect.left - containerRect.left + targetRect.width / 2,
-        y2: targetRect.top - containerRect.top + targetRect.height / 2,
+        x1: sourceRect.left - contentRect.left + sourceRect.width / 2,
+        y1: sourceRect.top - contentRect.top + sourceRect.height / 2,
+        x2: targetRect.left - contentRect.left + targetRect.width / 2,
+        y2: targetRect.top - contentRect.top + targetRect.height / 2,
         relation: item.relation_type,
       });
     });
 
-    setCanvasSize({ width: containerRect.width, height: containerRect.height });
-    setLineSegments(nextLines);
+    setCanvasSize({
+      width: Math.max(content.scrollWidth, containerRect.width),
+      height: Math.max(content.scrollHeight, containerRect.height),
+    });
+    setLineSegments(segments);
   }, [alignment]);
 
   useLayoutEffect(() => {
@@ -117,9 +113,19 @@ export function TokenAlignmentEditor({
   }, [computeLayout, sourceTokens, targetTokens]);
 
   useEffect(() => {
-    const handleResize = () => computeLayout();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+    const handleScroll = () => computeLayout();
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [computeLayout]);
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const observer = new ResizeObserver(() => computeLayout());
+    observer.observe(content);
+    return () => observer.disconnect();
   }, [computeLayout]);
 
   const toggleAlignment = useCallback(
@@ -179,9 +185,10 @@ export function TokenAlignmentEditor({
 
   const highlightSource = useCallback(
     (tokenId: number) => {
-      if (pendingSourceId === tokenId) return 'border-blue-600 bg-blue-100 text-blue-900';
-      const linked = alignment.some((item) => item.source_id === tokenId);
-      return linked
+      if (pendingSourceId === tokenId) {
+        return 'border-blue-600 bg-blue-100 text-blue-900';
+      }
+      return alignment.some((item) => item.source_id === tokenId)
         ? 'border-blue-300 bg-blue-50 text-blue-700'
         : 'border-neutral-200 bg-neutral-100 text-neutral-700 hover:bg-neutral-200';
     },
@@ -190,9 +197,10 @@ export function TokenAlignmentEditor({
 
   const highlightTarget = useCallback(
     (tokenId: number) => {
-      if (pendingTargetId === tokenId) return 'border-blue-600 bg-blue-100 text-blue-900';
-      const linked = alignment.some((item) => item.target_id === tokenId);
-      return linked
+      if (pendingTargetId === tokenId) {
+        return 'border-blue-600 bg-blue-100 text-blue-900';
+      }
+      return alignment.some((item) => item.target_id === tokenId)
         ? 'border-blue-300 bg-blue-50 text-blue-700'
         : 'border-neutral-200 bg-neutral-100 text-neutral-700 hover:bg-neutral-200';
     },
@@ -201,10 +209,11 @@ export function TokenAlignmentEditor({
 
   const handleRelationChange = useCallback(
     (index: number, value: string) => {
-      const next = alignment.map((item, idx) =>
-        idx === index ? { ...item, relation_type: value } : item,
+      onAlignmentChange(
+        alignment.map((item, idx) =>
+          idx === index ? { ...item, relation_type: value } : item,
+        ),
       );
-      onAlignmentChange(next);
     },
     [alignment, onAlignmentChange],
   );
@@ -226,7 +235,10 @@ export function TokenAlignmentEditor({
       <select
         value={toSelectValue(token.pos)}
         onChange={(event) =>
-          onUpdate(index, { ...token, pos: event.target.value === '-' ? null : event.target.value })
+          onUpdate(index, {
+            ...token,
+            pos: event.target.value === '-' ? null : event.target.value,
+          })
         }
         className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
       >
@@ -272,79 +284,92 @@ export function TokenAlignmentEditor({
       <div className="text-xs uppercase tracking-wide text-neutral-500">
         词汇与对齐标注
       </div>
-      <div ref={containerRef} className="relative flex flex-col gap-12 py-4">
-        <div className="flex flex-wrap justify-center gap-4">
-          {sourceTokens.length === 0 ? (
-            <span className="text-xs text-neutral-400">暂无文言词元</span>
-          ) : (
-            sourceTokens.map((token, index) => (
-              <div key={token.id ?? index} className="flex flex-col items-center gap-2">
-                <div className="flex gap-2">
-                  {renderPosSelect(token, index, 'source', onUpdateSourceToken)}
-                  {renderSyntaxSelect(token, index, 'source', onUpdateSourceToken)}
-                </div>
-                <button
-                  ref={(element) => {
-                    sourceRefs.current[token.id ?? index + 1] = element;
-                  }}
-                  onClick={() => handleSourceClick(token.id ?? index + 1)}
-                  className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightSource(
-                    token.id ?? index + 1,
-                  )}`}
-                >
-                  {token.word || `词元 ${index + 1}`}
-                </button>
-              </div>
-            ))
-          )}
-        </div>
 
-        {canvasSize.width > 0 && canvasSize.height > 0 && (
-          <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            width={canvasSize.width}
-            height={canvasSize.height}
+      <div className="relative -mx-2 overflow-hidden px-2">
+        <div
+          ref={scrollContainerRef}
+          className="relative max-w-full overflow-x-auto"
+        >
+          <div
+            ref={contentRef}
+            className="relative inline-flex min-w-max flex-col px-6 py-8"
           >
-            {lineSegments.map((line) => (
-              <line
-                key={line.key}
-                x1={line.x1}
-                y1={line.y1}
-                x2={line.x2}
-                y2={line.y2}
-                stroke="#3b82f6"
-                strokeWidth={2}
-                strokeLinecap="round"
-                opacity={0.7}
-              />
-            ))}
-          </svg>
-        )}
+            {canvasSize.width > 0 && canvasSize.height > 0 && (
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                width={canvasSize.width}
+                height={canvasSize.height}
+              >
+                {lineSegments.map((line) => (
+                  <line
+                    key={line.key}
+                    x1={line.x1}
+                    y1={line.y1}
+                    x2={line.x2}
+                    y2={line.y2}
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    opacity={0.7}
+                  />
+                ))}
+              </svg>
+            )}
 
-        <div className="flex flex-wrap justify-center gap-4">
-          {targetTokens.length === 0 ? (
-            <span className="text-xs text-neutral-400">暂无白话词元</span>
-          ) : (
-            targetTokens.map((token, index) => (
-              <div key={token.id ?? index} className="flex flex-col items-center gap-2">
-                <button
-                  ref={(element) => {
-                    targetRefs.current[token.id ?? index + 1] = element;
-                  }}
-                  onClick={() => handleTargetClick(token.id ?? index + 1)}
-                  className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightTarget(
-                    token.id ?? index + 1,
-                  )}`}
-                >
-                  {token.word || `词元 ${index + 1}`}
-                </button>
-                <div className="flex gap-2">
-                  {renderPosSelect(token, index, 'target', onUpdateTargetToken)}
-                  {renderSyntaxSelect(token, index, 'target', onUpdateTargetToken)}
-                </div>
-              </div>
-            ))
-          )}
+            <div className="flex min-w-max flex-nowrap justify-start gap-6 pb-14">
+              {sourceTokens.length === 0 ? (
+                <span className="text-xs text-neutral-400">暂无文言词元</span>
+              ) : (
+                sourceTokens.map((token, index) => {
+                  const tokenId = getTokenId(token, index);
+                  return (
+                    <div key={tokenId} className="flex flex-col items-center gap-2">
+                      <div className="flex gap-2">
+                        {renderPosSelect(token, index, 'source', onUpdateSourceToken)}
+                        {renderSyntaxSelect(token, index, 'source', onUpdateSourceToken)}
+                      </div>
+                      <button
+                        ref={(element) => {
+                          sourceRefs.current[tokenId] = element;
+                        }}
+                        onClick={() => handleSourceClick(tokenId)}
+                        className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightSource(tokenId)}`}
+                      >
+                        {token.word || `词元 ${index + 1}`}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex min-w-max flex-nowrap justify-start gap-6 pt-14">
+              {targetTokens.length === 0 ? (
+                <span className="text-xs text-neutral-400">暂无白话词元</span>
+              ) : (
+                targetTokens.map((token, index) => {
+                  const tokenId = getTokenId(token, index);
+                  return (
+                    <div key={tokenId} className="flex flex-col items-center gap-2">
+                      <button
+                        ref={(element) => {
+                          targetRefs.current[tokenId] = element;
+                        }}
+                        onClick={() => handleTargetClick(tokenId)}
+                        className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightTarget(tokenId)}`}
+                      >
+                        {token.word || `词元 ${index + 1}`}
+                      </button>
+                      <div className="flex gap-2">
+                        {renderPosSelect(token, index, 'target', onUpdateTargetToken)}
+                        {renderSyntaxSelect(token, index, 'target', onUpdateTargetToken)}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -356,8 +381,12 @@ export function TokenAlignmentEditor({
           </div>
         ) : (
           alignment.map((item, index) => {
-            const sourceToken = getSourceTokenById(item.source_id);
-            const targetToken = getTargetTokenById(item.target_id);
+            const sourceToken = sourceTokens.find(
+              (token, tokenIndex) => getTokenId(token, tokenIndex) === item.source_id,
+            );
+            const targetToken = targetTokens.find(
+              (token, tokenIndex) => getTokenId(token, tokenIndex) === item.target_id,
+            );
             return (
               <div
                 key={`${item.source_id}-${item.target_id}`}
