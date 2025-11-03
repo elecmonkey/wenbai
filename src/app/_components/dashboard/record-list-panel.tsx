@@ -40,7 +40,7 @@ export function RecordListPanel() {
 
   const handleCreateRecord = async () => {
     if (!activeRepoId) {
-      window.alert('请先选择一个仓库。');
+      window.alert('请先选择一个资料库。');
       return;
     }
 
@@ -88,7 +88,7 @@ export function RecordListPanel() {
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-2 text-sm">
         {activeRepoId === null ? (
-          <div className="py-4 text-neutral-500">请选择一个仓库。</div>
+          <div className="py-4 text-neutral-500">请选择一个资料库。</div>
         ) : isLoading ? (
           <div className="py-4 text-neutral-500">正在加载条目列表…</div>
         ) : isError ? (

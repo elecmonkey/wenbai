@@ -20,11 +20,11 @@ export function RepoTabs() {
         <div className="inline-flex min-w-full items-center gap-2 py-2 text-sm">
           {isLoading ? (
             <div className="flex h-10 items-center px-3 text-neutral-500">
-              加载仓库标签…
+              加载资料库标签…
             </div>
           ) : openRepoIds.length === 0 ? (
             <div className="flex h-10 items-center rounded border border-dashed border-neutral-200 bg-neutral-50 px-4 text-neutral-500">
-              尚未打开任何仓库，请从左侧选择。
+              尚未打开任何资料库，请从左侧选择。
             </div>
           ) : (
             openRepoIds.map((repoId) => {

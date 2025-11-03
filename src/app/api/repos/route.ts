@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { message: "error", error: "仓库名称已存在" },
+        { message: "error", error: "资料库名称已存在" },
         { status: 409 },
       );
     }
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { message: "error", error: "仓库名称已存在" },
+        { message: "error", error: "资料库名称已存在" },
         { status: 409 },
       );
     }

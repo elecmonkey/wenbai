@@ -143,10 +143,10 @@ export function RecordEditor() {
 
   const disabledReason = useMemo(() => {
     if (!activeRepoId) {
-      return '请选择一个仓库开始编辑。';
+      return '请选择一个资料库开始编辑。';
     }
     if (!activeRecordId) {
-      return '当前仓库暂无条目，需要先创建。';
+      return '当前资料库暂无条目，需要先创建。';
     }
     return null;
   }, [activeRecordId, activeRepoId]);

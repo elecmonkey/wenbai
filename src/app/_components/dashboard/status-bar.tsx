@@ -15,8 +15,8 @@ export function StatusBar() {
     const repoName =
       activeRepoId && repos.length
         ? repos.find((repo) => repo.id === activeRepoId)?.name ??
-          '仓库不存在'
-        : '未选择仓库';
+          '资料库不存在'
+        : '未选择资料库';
     const recordText = activeRecordId
       ? `条目：#${activeRecordId}`
       : '未选择条目';
@@ -26,7 +26,7 @@ export function StatusBar() {
         ? '未保存'
         : '已保存';
 
-    return `仓库：${repoName} ｜ ${recordText} ｜ ${saveText}`;
+    return `资料库：${repoName} ｜ ${recordText} ｜ ${saveText}`;
   }, [activeRepoId, activeRecordId, recordDirty, recordSaving, repos]);
 
   return (

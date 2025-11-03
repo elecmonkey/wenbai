@@ -70,13 +70,13 @@ export function RepoSidebar() {
   }, [menuState]);
 
   const handleCreateRepo = async () => {
-    const input = window.prompt('请输入新仓库名称');
+    const input = window.prompt('请输入新资料库名称');
     if (!input) return;
     const trimmed = input.trim();
     if (!trimmed) return;
 
     if (repos.some((repo) => repo.name === trimmed)) {
-      window.alert('仓库名称已存在');
+      window.alert('资料库名称已存在');
       return;
     }
 
@@ -89,13 +89,13 @@ export function RepoSidebar() {
       const message =
         error instanceof ApiError
           ? error.message
-          : '创建仓库失败，请稍后再试。';
+        : '创建资料库失败，请稍后再试。';
       window.alert(message);
     }
   };
 
   const handleRenameRepo = async (repoId: number, currentName: string) => {
-    const input = window.prompt('请输入新的仓库名称', currentName);
+    const input = window.prompt('请输入新的资料库名称', currentName);
     if (!input) return;
     const trimmed = input.trim();
     if (!trimmed || trimmed === currentName) return;
@@ -105,7 +105,7 @@ export function RepoSidebar() {
         (repo) => repo.name === trimmed && repo.id !== repoId,
       )
     ) {
-      window.alert('仓库名称已存在');
+      window.alert('资料库名称已存在');
       return;
     }
 
@@ -122,7 +122,7 @@ export function RepoSidebar() {
 
   const handleDeleteRepo = async (repoId: number, repoName: string) => {
     const confirmed = window.confirm(
-      `确定要删除仓库“${repoName}”吗？此操作会删除其所有条目。`,
+      `确定要删除资料库“${repoName}”吗？此操作会删除其所有条目。`,
     );
     if (!confirmed) return;
 
@@ -133,7 +133,7 @@ export function RepoSidebar() {
       const message =
         error instanceof ApiError
           ? error.message
-          : '删除仓库失败，请稍后再试。';
+          : '删除资料库失败，请稍后再试。';
       window.alert(message);
     }
   };
@@ -168,7 +168,7 @@ export function RepoSidebar() {
       ref={sidebarRef}
       className="relative flex w-64 flex-col border-r border-neutral-200 bg-white"
     >
-      <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-4">
+      <div className="flex items-center justify-between px-4 py-4">
         <h1 className="text-base font-semibold text-neutral-800">
           文白翻译语料库
         </h1>
@@ -184,11 +184,11 @@ export function RepoSidebar() {
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {isLoading ? (
           <div className="px-2 py-4 text-sm text-neutral-500">
-            正在加载仓库…
+            正在加载资料库…
           </div>
         ) : repos.length === 0 ? (
           <div className="px-2 py-4 text-sm text-neutral-500">
-            暂无仓库，请先创建。
+            暂无资料库，请先创建。
           </div>
         ) : (
           <ul className="space-y-1 text-sm">
@@ -212,7 +212,7 @@ export function RepoSidebar() {
       </div>
 
       <div className="border-t border-neutral-200 px-4 py-3 text-xs text-neutral-500">
-        仓库总数：{repos.length}
+        资料库总数：{repos.length}
       </div>
 
       {menuState && contextRepo && (
