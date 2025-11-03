@@ -17,13 +17,15 @@ export function RepoTabs() {
   return (
     <header className="border-b border-neutral-200 bg-white px-4">
       <div className="overflow-x-auto scrollbar-thin">
-        <div className="inline-flex min-w-full flex-nowrap items-center gap-2 py-3 text-sm">
+        <div className="inline-flex min-w-full items-center gap-2 py-2 text-sm">
           {isLoading ? (
-            <span className="text-neutral-500">加载仓库标签…</span>
+            <div className="flex h-10 items-center px-3 text-neutral-500">
+              加载仓库标签…
+            </div>
           ) : openRepoIds.length === 0 ? (
-            <span className="text-neutral-500">
+            <div className="flex h-10 items-center rounded border border-dashed border-neutral-200 bg-neutral-50 px-4 text-neutral-500">
               尚未打开任何仓库，请从左侧选择。
-            </span>
+            </div>
           ) : (
             openRepoIds.map((repoId) => {
               const repo = repoMap.get(repoId);
@@ -32,7 +34,7 @@ export function RepoTabs() {
               return (
                 <div
                   key={repoId}
-                  className={`flex min-w-[160px] flex-shrink-0 items-center rounded-t border ${
+                  className={`flex h-10 min-w-[160px] flex-shrink-0 items-center rounded-t border ${
                     isActive
                       ? 'border-blue-200 bg-blue-50 text-blue-700'
                       : 'border-transparent bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
@@ -40,7 +42,7 @@ export function RepoTabs() {
                 >
                   <button
                     onClick={() => activateRepoTab(repoId)}
-                    className="flex min-w-0 flex-1 items-center px-3 py-2 text-left"
+                    className="flex min-w-0 flex-1 items-center px-3 text-left"
                   >
                     <span className="truncate">{repo.name}</span>
                   </button>

@@ -170,7 +170,7 @@ export function RepoSidebar() {
     >
       <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-4">
         <h1 className="text-base font-semibold text-neutral-800">
-          文白对译资料库
+          文白翻译语料库
         </h1>
         <button
           onClick={handleCreateRepo}
