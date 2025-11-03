@@ -323,11 +323,11 @@ export function TokenAlignmentEditor({
                 sourceTokens.map((token, index) => {
                   const tokenId = getTokenId(token, index);
                   return (
-                    <div key={tokenId} className="flex flex-col items-center gap-2">
-                      <div className="flex gap-2">
-                        {renderPosSelect(token, index, 'source', onUpdateSourceToken)}
-                        {renderSyntaxSelect(token, index, 'source', onUpdateSourceToken)}
-                      </div>
+                  <div key={tokenId} className="flex flex-col items-center gap-2">
+                    <div className="flex flex-col gap-2">
+                      {renderPosSelect(token, index, 'source', onUpdateSourceToken)}
+                      {renderSyntaxSelect(token, index, 'source', onUpdateSourceToken)}
+                    </div>
                       <button
                         ref={(element) => {
                           sourceRefs.current[tokenId] = element;
@@ -360,10 +360,10 @@ export function TokenAlignmentEditor({
                       >
                         {token.word || `词元 ${index + 1}`}
                       </button>
-                      <div className="flex gap-2">
-                        {renderPosSelect(token, index, 'target', onUpdateTargetToken)}
-                        {renderSyntaxSelect(token, index, 'target', onUpdateTargetToken)}
-                      </div>
+                    <div className="flex flex-col gap-2">
+                      {renderPosSelect(token, index, 'target', onUpdateTargetToken)}
+                      {renderSyntaxSelect(token, index, 'target', onUpdateTargetToken)}
+                    </div>
                     </div>
                   );
                 })
