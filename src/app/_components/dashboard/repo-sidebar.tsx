@@ -12,7 +12,12 @@ import {
 import { ApiError } from '@/lib/api-client';
 
 export function RepoSidebar() {
-  const { data: repos = [], isLoading, isFetching } = useReposQuery();
+  const {
+    data: repos = [],
+    isLoading,
+    isFetching,
+    refetch: refetchRepos,
+  } = useReposQuery();
   const createRepo = useCreateRepoMutation();
   const renameRepo = useRenameRepoMutation();
   const deleteRepo = useDeleteRepoMutation();
@@ -183,13 +188,25 @@ export function RepoSidebar() {
         <h1 className="text-base font-semibold text-neutral-800">
           文白翻译语料库
         </h1>
-        <button
-          onClick={handleCreateRepo}
-          disabled={createRepo.isPending}
-          className="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-200"
-        >
-          ＋
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              void refetchRepos();
+            }}
+            disabled={isLoading || isFetching}
+            className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-2xl text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            aria-label="刷新资料库列表"
+          >
+            ⟳
+          </button>
+          <button
+            onClick={handleCreateRepo}
+            disabled={createRepo.isPending}
+            className="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-200"
+          >
+            ＋
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-3">
