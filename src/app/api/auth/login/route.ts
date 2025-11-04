@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { AUTH_COOKIE_BASE, SEVEN_DAYS_IN_SECONDS, signAuthToken } from "@/lib/auth";
 
+export const runtime = "edge";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
@@ -26,7 +28,6 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('auth login prisma is', prisma);
     const user = await prisma.user.findUnique({
       where: { username },
       select: {

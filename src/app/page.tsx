@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { DashboardRoot } from "./_components/dashboard";
 import type { DashboardInitialData, Repo } from "@/types/dashboard";
 
+export const runtime = "edge";
+
 export default async function Home() {
   const repos = (await prisma.repo.findMany({
     select: { id: true, name: true },

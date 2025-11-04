@@ -1,6 +1,15 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import { withAccelerate } from '@prisma/extension-accelerate';
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required to run this script.');
+}
+
+const prisma = new PrismaClient({
+  datasourceUrl: process.env.DATABASE_URL,
+}).$extends(withAccelerate());
 
 type Options = {
   username?: string;

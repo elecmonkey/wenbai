@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
+export const runtime = "edge";
+
 type RouteContext = {
   params: Promise<{
     repoId: string;

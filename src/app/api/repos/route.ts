@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+export const runtime = "edge";
 import { getAuthUser } from "@/lib/auth";
 
 export async function GET() {
