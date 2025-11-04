@@ -415,13 +415,16 @@ export function RecordEditor() {
               ? '请先保存或撤销当前更改后再刷新'
               : undefined
           }
-          className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+          className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+          containerClassName="inline-flex"
         >
-          {refreshing ? (
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
-          ) : (
-            '刷新'
-          )}
+          <span className="inline-flex h-7 w-full items-center justify-center">
+            {refreshing ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
+            ) : (
+              '刷新'
+            )}
+          </span>
         </DisabledHintButton>
         <span className="ml-auto text-xs text-neutral-500">
           当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
