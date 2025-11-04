@@ -28,6 +28,7 @@ export function RepoSidebar() {
   const openRepoTab = useDashboardStore((state) => state.openRepoTab);
   const closeRepoTab = useDashboardStore((state) => state.closeRepoTab);
   const requestSave = useDashboardStore((state) => state.requestSave);
+  const isAuthenticated = useAuthStore((state) => state.user !== null);
   const requireAuth = useAuthStore((state) => state.requireAuth);
   const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
 
@@ -90,8 +91,9 @@ export function RepoSidebar() {
   };
 
   const handleCreateRepo = async () => {
-    const authed = await requireAuth();
-    if (!authed) return;
+    if (!isAuthenticated) {
+      return;
+    }
 
     const input = window.prompt('请输入新资料库名称');
     if (!input) return;
@@ -235,22 +237,23 @@ export function RepoSidebar() {
         </h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              void refetchRepos();
-            }}
-            disabled={isLoading || isFetching}
-            className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-2xl text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-            aria-label="刷新资料库列表"
-          >
-            ⟳
-          </button>
-          <button
-            onClick={handleCreateRepo}
-            disabled={createRepo.isPending}
-            className="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-200"
-          >
-            ＋
-          </button>
+          onClick={() => {
+            void refetchRepos();
+          }}
+          disabled={isLoading || isFetching}
+          className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-2xl text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+          aria-label="刷新资料库列表"
+        >
+          ⟳
+        </button>
+        <button
+          onClick={handleCreateRepo}
+          disabled={createRepo.isPending || !isAuthenticated}
+          title={!isAuthenticated ? '请登录后创建资料库' : undefined}
+          className="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+        >
+          ＋
+        </button>
         </div>
       </div>
 

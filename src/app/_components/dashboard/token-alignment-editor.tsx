@@ -462,15 +462,16 @@ export function TokenAlignmentEditor({
                     </option>
                   ))}
                 </select>
-                <button
-                  onClick={() => {
-                    if (isReadOnly) return;
-                    handleRemoveAlignment(index);
-                  }}
-                  className="ml-auto rounded border border-transparent px-2 py-1 text-xs text-neutral-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
-                >
-                  删除
-                </button>
+                {!isReadOnly ? (
+                  <button
+                    onClick={() => {
+                      handleRemoveAlignment(index);
+                    }}
+                    className="ml-auto rounded border border-transparent px-2 py-1 text-xs text-neutral-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                  >
+                    删除
+                  </button>
+                ) : null}
               </div>
             );
           })

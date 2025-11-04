@@ -19,7 +19,7 @@ export function RecordListPanel() {
   const requestSave = useDashboardStore((state) => state.requestSave);
   const recordDirty = useDashboardStore((state) => state.recordDirty);
   const recordSaving = useDashboardStore((state) => state.recordSaving);
-  const requireAuth = useAuthStore((state) => state.requireAuth);
+  const isAuthenticated = useAuthStore((state) => state.user !== null);
   const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
 
   const {
@@ -54,13 +54,14 @@ export function RecordListPanel() {
   }, [records, activeRecordId, activeRepoId, setActiveRecordId, requestSave]);
 
   const handleCreateRecord = async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     if (!activeRepoId) {
       window.alert('请先选择一个资料库。');
       return;
     }
-
-    const authed = await requireAuth();
-    if (!authed) return;
 
     const source = window.prompt('请输入新条目的文言原文');
     if (!source) return;
@@ -116,8 +117,13 @@ export function RecordListPanel() {
       <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3 text-sm">
         <button
           onClick={handleCreateRecord}
-          disabled={!activeRepoId || createRecord.isPending}
-          className="rounded bg-blue-600 px-2 py-1 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-200"
+          disabled={
+            !activeRepoId || createRecord.isPending || !isAuthenticated
+          }
+          title={
+            !isAuthenticated ? '请登录后创建条目' : undefined
+          }
+          className="rounded bg-blue-600 px-2 py-1 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           ＋ 新条目
         </button>
@@ -172,10 +178,14 @@ export function RecordListPanel() {
                       {record.meta ?? ''}
                     </p>
                   </div>
-                  <SaveStatusIndicator
-                    dirty={record.id === activeRecordId && recordDirty}
-                    saving={record.id === activeRecordId && recordSaving}
-                  />
+                  {isAuthenticated ? (
+                    <SaveStatusIndicator
+                      dirty={record.id === activeRecordId && recordDirty}
+                      saving={record.id === activeRecordId && recordSaving}
+                    />
+                  ) : (
+                    <span className="h-3 w-3" aria-hidden />
+                  )}
                 </button>
               </li>
             ))}

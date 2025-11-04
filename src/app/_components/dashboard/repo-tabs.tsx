@@ -3,6 +3,7 @@
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
 import { useReposQuery } from '@/app/_queries/repos';
 import { SaveStatusIndicator } from './save-status-indicator';
+import { useAuthStore } from '@/app/_stores/auth-store';
 
 export function RepoTabs() {
   const { data: repos = [], isLoading } = useReposQuery();
@@ -15,6 +16,7 @@ export function RepoTabs() {
   const requestSave = useDashboardStore((state) => state.requestSave);
   const recordDirty = useDashboardStore((state) => state.recordDirty);
   const recordSaving = useDashboardStore((state) => state.recordSaving);
+  const isAuthenticated = useAuthStore((state) => state.user !== null);
 
   const repoMap = new Map(repos.map((repo) => [repo.id, repo]));
 
@@ -57,14 +59,21 @@ export function RepoTabs() {
                   >
                     <span className="truncate">{repo.name}</span>
                   </button>
-                  {isActive ? (
-                    <SaveStatusIndicator
-                      dirty={recordDirty}
-                      saving={recordSaving}
-                      className="mr-1"
-                    />
+                  {isAuthenticated ? (
+                    isActive ? (
+                      <SaveStatusIndicator
+                        dirty={recordDirty}
+                        saving={recordSaving}
+                        className="mr-1"
+                      />
+                    ) : (
+                      <span
+                        className="mr-1 h-3 w-3 flex-shrink-0 rounded-full bg-emerald-200"
+                        aria-hidden
+                      />
+                    )
                   ) : (
-                    <span className="mr-1 h-3 w-3 flex-shrink-0 rounded-full bg-emerald-200" aria-hidden />
+                    <span className="mr-1 h-3 w-3 flex-shrink-0" aria-hidden />
                   )}
                   <button
                     onClick={(event) => {

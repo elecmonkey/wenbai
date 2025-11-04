@@ -349,14 +349,16 @@ export function RecordEditor() {
       <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 text-sm">
         <button
           onClick={handleSave}
-          disabled={!recordDirty || updateRecord.isPending}
-          className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-200"
+          disabled={!recordDirty || updateRecord.isPending || !isAuthenticated}
+          title={!isAuthenticated ? '请登录后保存修改' : undefined}
+          className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           保存
         </button>
         <button
           onClick={handleReset}
-          disabled={!recordDirty}
+          disabled={!recordDirty || !isAuthenticated}
+          title={!isAuthenticated ? '请登录后撤销修改' : undefined}
           className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
         >
           撤销更改
@@ -375,6 +377,11 @@ export function RecordEditor() {
             <textarea
               value={sourceValue}
               readOnly={!isAuthenticated}
+              onFocus={(event) => {
+                if (!isAuthenticated) {
+                  event.currentTarget.blur();
+                }
+              }}
               onChange={(event) => {
                 if (!isAuthenticated) return;
                 const nextValue = event.target.value;
@@ -403,6 +410,11 @@ export function RecordEditor() {
             <textarea
               value={targetValue}
               readOnly={!isAuthenticated}
+              onFocus={(event) => {
+                if (!isAuthenticated) {
+                  event.currentTarget.blur();
+                }
+              }}
               onChange={(event) => {
                 if (!isAuthenticated) return;
                 const nextValue = event.target.value;
@@ -431,6 +443,11 @@ export function RecordEditor() {
             <input
               value={metaValue}
               readOnly={!isAuthenticated}
+              onFocus={(event) => {
+                if (!isAuthenticated) {
+                  event.currentTarget.blur();
+                }
+              }}
               onChange={(event) => {
                 if (!isAuthenticated) return;
                 setMetaValue(event.target.value);
