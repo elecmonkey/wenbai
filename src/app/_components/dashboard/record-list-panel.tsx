@@ -7,6 +7,7 @@ import {
   useRecordsQuery,
 } from '@/app/_queries/records';
 import { ApiError } from '@/lib/api-client';
+import { SaveStatusIndicator } from './save-status-indicator';
 
 export function RecordListPanel() {
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
@@ -15,6 +16,8 @@ export function RecordListPanel() {
     (state) => state.setActiveRecordId,
   );
   const requestSave = useDashboardStore((state) => state.requestSave);
+  const recordDirty = useDashboardStore((state) => state.recordDirty);
+  const recordSaving = useDashboardStore((state) => state.recordSaving);
 
   const {
     data: records = [],
@@ -117,26 +120,33 @@ export function RecordListPanel() {
             {records.map((record) => (
               <li key={record.id}>
                 <button
-                  onClick={() => void (async () => {
-                    if (record.id === activeRecordId) {
-                      return;
-                    }
-                    const saved = await requestSave();
-                    if (!saved) return;
-                    setActiveRecordId(record.id);
-                  })()}
-                  className={`w-full rounded px-3 py-2 text-left transition ${
+                  onClick={() =>
+                    void (async () => {
+                      if (record.id === activeRecordId) {
+                        return;
+                      }
+                      const saved = await requestSave();
+                      if (!saved) return;
+                      setActiveRecordId(record.id);
+                    })()}
+                  className={`flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${
                     record.id === activeRecordId
                       ? 'bg-blue-50 text-blue-700'
                       : 'hover:bg-neutral-100'
                   }`}
                 >
-                  <p className="truncate text-sm">
-                    {record.source || '未命名条目'}
-                  </p>
-                  <p className="text-xs text-neutral-400">
-                    {record.meta ?? ''}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">
+                      {record.source || '未命名条目'}
+                    </p>
+                    <p className="truncate text-xs text-neutral-400">
+                      {record.meta ?? ''}
+                    </p>
+                  </div>
+                  <SaveStatusIndicator
+                    dirty={record.id === activeRecordId && recordDirty}
+                    saving={record.id === activeRecordId && recordSaving}
+                  />
                 </button>
               </li>
             ))}
