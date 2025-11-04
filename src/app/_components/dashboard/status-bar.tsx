@@ -19,6 +19,8 @@ export function StatusBar() {
   const openLoginModal = useAuthStore((state) => state.openLoginModal);
   const logout = useAuthStore((state) => state.logout);
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const statusText = useMemo(() => {
     const repoName =
       activeRepoId && repos.length
@@ -50,11 +52,18 @@ export function StatusBar() {
               </span>
               <button
                 onClick={() => {
-                  void logout();
+                  setLoggingOut(true);
+                  void logout().finally(() => {
+                    setLoggingOut(false);
+                  });
                 }}
-                className="shrink-0 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100"
+                disabled={loggingOut}
+                className="flex shrink-0 items-center gap-2 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
               >
-                退出登录
+                {loggingOut ? (
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
+                ) : null}
+                {loggingOut ? '退出中' : '退出登录'}
               </button>
             </>
           ) : (
