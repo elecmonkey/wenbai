@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -40,8 +41,8 @@ export function FlexibleOptionInput({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState<number>(-1);
-  const [filterText, setFilterText] = useState('');
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [filterText, setFilterText] = useState(() => value ?? '');
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
     left: number;
@@ -49,6 +50,7 @@ export function FlexibleOptionInput({
   } | null>(null);
 
   const inputValue = value ?? '';
+  const inputDisplayValue = open ? filterText : inputValue;
   const normalizedCurrent = normalizeValue(value);
 
   const optionPool = useMemo(() => {
@@ -79,7 +81,7 @@ export function FlexibleOptionInput({
 
   const closeDropdown = useCallback(() => {
     setOpen(false);
-    setActiveIndex(-1);
+    setActiveIndex(null);
     setDropdownPosition(null);
     dropdownRef.current = null;
   }, []);
@@ -94,6 +96,7 @@ export function FlexibleOptionInput({
       const normalized = normalizeValue(option);
       onChange(normalized);
       setFilterText(option);
+      setActiveIndex(null);
       closeDropdown();
       requestAnimationFrame(() => {
         if (!disabled) {
@@ -127,20 +130,6 @@ export function FlexibleOptionInput({
       document.removeEventListener('focusin', handleDocumentClick);
     };
   }, [handleDocumentClick]);
-
-  useEffect(() => {
-    if (!open) {
-      setActiveIndex(-1);
-    } else if (filteredOptions.length > 0) {
-      setActiveIndex(0);
-    }
-  }, [filteredOptions.length, open]);
-
-  useEffect(() => {
-    if (!open) {
-      setFilterText(value ?? '');
-    }
-  }, [open, value]);
 
   const updateDropdownPosition = useCallback(() => {
     if (!inputRef.current) return;
@@ -176,9 +165,10 @@ export function FlexibleOptionInput({
       closeDropdown();
       return;
     }
-    setFilterText('');
+    setFilterText(value ?? '');
+    setActiveIndex(null);
     openDropdown();
-  }, [closeDropdown, disabled, openDropdown]);
+  }, [closeDropdown, disabled, openDropdown, value]);
 
   const handleMouseDown = useCallback(
     (event: ReactMouseEvent<HTMLInputElement>) => {
@@ -195,8 +185,9 @@ export function FlexibleOptionInput({
         return;
       }
       const nextValue = event.target.value;
-      openDropdown();
       setFilterText(nextValue);
+      setActiveIndex(null);
+      openDropdown();
       onChange(normalizeValue(nextValue));
     },
     [disabled, onChange, openDropdown],
@@ -204,45 +195,61 @@ export function FlexibleOptionInput({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
-      if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      const key = event.key;
+      const hasOptions = filteredOptions.length > 0;
+
+      if (key === 'ArrowDown' || key === 'ArrowUp') {
         event.preventDefault();
-        setFilterText('');
-        openDropdown();
+        if (!open) {
+          setFilterText(value ?? '');
+          openDropdown();
+          if (hasOptions) {
+            setActiveIndex(0);
+          }
+          return;
+        }
+
+        if (!hasOptions) {
+          setActiveIndex(null);
+          return;
+        }
+
+        setActiveIndex((prev) => {
+          const baseIndex = key === 'ArrowDown' ? -1 : filteredOptions.length;
+          const currentIndex = typeof prev === 'number' ? prev : baseIndex;
+          if (key === 'ArrowDown') {
+            const next = currentIndex + 1;
+            return next >= filteredOptions.length ? 0 : next;
+          }
+          const next = currentIndex - 1;
+          return next < 0 ? filteredOptions.length - 1 : next;
+        });
         return;
       }
 
-      if (!open) return;
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setActiveIndex((prev) => {
-          if (filteredOptions.length === 0) return -1;
-          const next = prev + 1;
-          return next >= filteredOptions.length ? 0 : next;
-        });
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setActiveIndex((prev) => {
-          if (filteredOptions.length === 0) return -1;
-          const next = prev - 1;
-          return next < 0 ? filteredOptions.length - 1 : next;
-        });
-      } else if (event.key === 'Enter') {
-        if (activeIndex >= 0 && activeIndex < filteredOptions.length) {
+      if (key === 'Enter') {
+        if (open && activeIndex !== null && activeIndex >= 0 && activeIndex < filteredOptions.length) {
           event.preventDefault();
           handleOptionSelect(filteredOptions[activeIndex]);
-        } else {
+        } else if (open) {
           closeDropdown();
         }
-      } else if (event.key === 'Escape') {
+        return;
+      }
+
+      if (key === 'Escape' && open) {
         event.preventDefault();
         closeDropdown();
       }
     },
-    [activeIndex, closeDropdown, filteredOptions, handleOptionSelect, open, openDropdown],
+    [activeIndex, closeDropdown, filteredOptions, handleOptionSelect, open, openDropdown, value],
   );
 
-  const showDropdown = open && !disabled && filteredOptions.length > 0 && dropdownPosition !== null;
+  const dropdownId = useId();
+  const hasSuggestions = filteredOptions.length > 0;
+  const showDropdown = open && !disabled && dropdownPosition !== null && hasSuggestions;
+  const activeOptionId =
+    showDropdown && activeIndex !== null ? `${dropdownId}-option-${activeIndex}` : undefined;
   const wrapperClassName = `inline-block ${className ?? ''}`.trim();
 
   return (
@@ -250,7 +257,7 @@ export function FlexibleOptionInput({
       <input
         ref={inputRef}
         type="text"
-        value={inputValue}
+        value={inputDisplayValue}
         onFocus={handleFocus}
         onMouseDown={handleMouseDown}
         onChange={handleInputChange}
@@ -264,6 +271,9 @@ export function FlexibleOptionInput({
         aria-expanded={showDropdown}
         aria-autocomplete="list"
         aria-disabled={disabled}
+        aria-controls={showDropdown ? dropdownId : undefined}
+        aria-activedescendant={activeOptionId}
+        aria-haspopup="listbox"
       />
       {showDropdown && dropdownPosition
         ? createPortal(
@@ -278,9 +288,12 @@ export function FlexibleOptionInput({
                 left: dropdownPosition.left,
                 width: dropdownPosition.width,
               }}
+              id={dropdownId}
+              role="listbox"
             >
               {filteredOptions.map((option, index) => {
                 const isActive = index === activeIndex;
+                const optionId = `${dropdownId}-option-${index}`;
                 return (
                   <button
                     key={option}
@@ -290,6 +303,9 @@ export function FlexibleOptionInput({
                     className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition ${
                       isActive ? 'bg-blue-50 text-blue-700' : 'hover:bg-neutral-100'
                     }`}
+                    role="option"
+                    id={optionId}
+                    aria-selected={isActive}
                   >
                     {option}
                   </button>
