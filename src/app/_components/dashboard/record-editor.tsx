@@ -46,6 +46,7 @@ export function RecordEditor() {
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
   const activeRecordId = useDashboardStore((state) => state.activeRecordId);
   const recordDirty = useDashboardStore((state) => state.recordDirty);
+  const recordSaving = useDashboardStore((state) => state.recordSaving);
   const setRecordDirty = useDashboardStore((state) => state.setRecordDirty);
   const setRecordSaving = useDashboardStore((state) => state.setRecordSaving);
   const registerSaveHandler = useDashboardStore(
@@ -71,6 +72,9 @@ export function RecordEditor() {
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const copySourceTimerRef = useRef<number | null>(null);
   const copyTargetTimerRef = useRef<number | null>(null);
+  const refreshing =
+    recordQuery.isRefetching ||
+    (recordQuery.isFetching && !recordQuery.isLoading);
 
   const showCopySourceSuccess = useCallback(() => {
     if (copySourceTimerRef.current) {
@@ -399,6 +403,24 @@ export function RecordEditor() {
           className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
         >
           撤销更改
+        </button>
+        <button
+          onClick={() => {
+            void recordQuery.refetch();
+          }}
+          disabled={recordDirty || recordSaving || refreshing}
+          title={
+            recordDirty || recordSaving
+              ? '请先保存或撤销当前更改后再刷新'
+              : undefined
+          }
+          className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+        >
+          {refreshing ? (
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
+          ) : (
+            '刷新'
+          )}
         </button>
         <span className="ml-auto text-xs text-neutral-500">
           当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
