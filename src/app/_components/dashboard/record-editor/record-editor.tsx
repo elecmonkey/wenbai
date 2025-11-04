@@ -142,7 +142,7 @@ export function RecordEditor() {
   );
 
   useEffect(() => {
-    if (!recordQuery.isSuccess) {
+    if (!recordQuery.isSuccess || recordQuery.isFetching) {
       return;
     }
 
@@ -158,7 +158,13 @@ export function RecordEditor() {
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [applyRecordData, recordDirty, recordQuery.data, recordQuery.isSuccess]);
+  }, [
+    applyRecordData,
+    recordDirty,
+    recordQuery.data,
+    recordQuery.isFetching,
+    recordQuery.isSuccess,
+  ]);
 
   useEffect(() => {
     setRecordSaving(updateRecord.isPending);
