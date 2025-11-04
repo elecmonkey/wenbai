@@ -71,13 +71,7 @@ export function FlexibleOptionInput({
     return list;
   }, [normalizedCurrent, options]);
 
-  const filteredOptions = useMemo(() => {
-    const keyword = filterText.trim().toLowerCase();
-    if (!keyword) {
-      return optionPool;
-    }
-    return optionPool.filter((option) => option.toLowerCase().includes(keyword));
-  }, [filterText, optionPool]);
+  const filteredOptions = optionPool;
 
   const closeDropdown = useCallback(() => {
     setOpen(false);
@@ -95,7 +89,7 @@ export function FlexibleOptionInput({
     (option: string) => {
       const normalized = normalizeValue(option);
       onChange(normalized);
-      setFilterText(option);
+      setFilterText(normalized ?? '');
       setActiveIndex(null);
       closeDropdown();
       requestAnimationFrame(() => {
