@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
+import { useAuthStore } from '@/app/_stores/auth-store';
 import {
   useRecordDetailQuery,
   useUpdateRecordMutation,
@@ -50,6 +51,9 @@ export function RecordEditor() {
   const registerSaveHandler = useDashboardStore(
     (state) => state.registerSaveHandler,
   );
+  const isAuthenticated = useAuthStore((state) => state.user !== null);
+  const requireAuth = useAuthStore((state) => state.requireAuth);
+  const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
 
   const recordQuery = useRecordDetailQuery(activeRepoId, activeRecordId);
   const updateRecord = useUpdateRecordMutation();
@@ -126,6 +130,9 @@ export function RecordEditor() {
   }, [setRecordSaving, updateRecord.isPending]);
 
   const setDirty = () => {
+    if (!isAuthenticated) {
+      return;
+    }
     if (!recordDirty) {
       setRecordDirty(true);
     }
@@ -141,6 +148,71 @@ export function RecordEditor() {
     return null;
   }, [activeRecordId, activeRepoId]);
 
+  const showSaveError = useCallback((error: unknown) => {
+    if (error instanceof ApiError && error.status !== 401) {
+      window.alert(error.message);
+      return;
+    }
+    if (error instanceof Error) {
+      window.alert(error.message);
+      return;
+    }
+    window.alert('保存失败，请稍后再试。');
+  }, []);
+
+  const executeSave = useCallback(async () => {
+    if (!activeRepoId || !activeRecordId) {
+      throw new Error('未选择条目，无法保存。');
+    }
+
+    const sanitizedSource = stripSlashes(sourceValue).trim();
+    if (!sanitizedSource) {
+      throw new Error('文言原文不能为空。');
+    }
+
+    const sanitizedTarget = stripSlashes(targetValue).trim();
+    const sanitizedMeta = metaValue.trim();
+
+    const nextSourceTokens = buildTokensFromValue(
+      sourceValue,
+      sourceTokens,
+    );
+    const nextTargetTokens = buildTokensFromValue(
+      targetValue,
+      targetTokens,
+    );
+
+    await updateRecord.mutateAsync({
+      repoId: activeRepoId,
+      recordId: activeRecordId,
+      data: {
+        source: sanitizedSource,
+        target: sanitizedTarget ? sanitizedTarget : null,
+        meta: sanitizedMeta ? sanitizedMeta : null,
+        source_tokens: nextSourceTokens,
+        target_tokens: nextTargetTokens,
+        alignment,
+      },
+    });
+
+    setSourceTokens(nextSourceTokens);
+    setTargetTokens(nextTargetTokens);
+    setRecordDirty(false);
+  }, [
+    activeRecordId,
+    activeRepoId,
+    alignment,
+    metaValue,
+    sourceTokens,
+    sourceValue,
+    targetTokens,
+    targetValue,
+    updateRecord,
+    setRecordDirty,
+    setSourceTokens,
+    setTargetTokens,
+  ]);
+
   const performSave = useCallback((): Promise<boolean> => {
     if (savePromiseRef.current) {
       return savePromiseRef.current;
@@ -155,47 +227,33 @@ export function RecordEditor() {
     }
 
     const promise = (async () => {
+      if (!isAuthenticated) {
+        await requireAuth(async () => {
+          try {
+            await executeSave();
+          } catch (error) {
+            showSaveError(error);
+          }
+        });
+        return false;
+      }
+
       try {
-        const sanitizedSource = stripSlashes(sourceValue).trim();
-        if (!sanitizedSource) {
-          window.alert('文言原文不能为空。');
+        await executeSave();
+        return true;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          handleUnauthorized(async () => {
+            try {
+              await executeSave();
+            } catch (retryError) {
+              showSaveError(retryError);
+            }
+          });
           return false;
         }
 
-        const sanitizedTarget = stripSlashes(targetValue).trim();
-
-        const nextSourceTokens = buildTokensFromValue(
-          sourceValue,
-          sourceTokens,
-        );
-        const nextTargetTokens = buildTokensFromValue(
-          targetValue,
-          targetTokens,
-        );
-
-        await updateRecord.mutateAsync({
-          repoId: activeRepoId,
-          recordId: activeRecordId,
-          data: {
-            source: sanitizedSource,
-            target: sanitizedTarget ? sanitizedTarget : null,
-            meta: metaValue.trim() ? metaValue : null,
-            source_tokens: nextSourceTokens,
-            target_tokens: nextTargetTokens,
-            alignment,
-          },
-        });
-
-        setSourceTokens(nextSourceTokens);
-        setTargetTokens(nextTargetTokens);
-        setRecordDirty(false);
-        return true;
-      } catch (error) {
-        if (error instanceof Error) {
-          window.alert(error.message);
-        } else {
-          window.alert('保存失败，请稍后再试。');
-        }
+        showSaveError(error);
         return false;
       }
     })();
@@ -204,21 +262,16 @@ export function RecordEditor() {
       savePromiseRef.current = null;
     });
 
-    return savePromiseRef.current;
+    return promise;
   }, [
     activeRecordId,
     activeRepoId,
-    alignment,
-    metaValue,
     recordDirty,
-    sourceTokens,
-    sourceValue,
-    targetTokens,
-    targetValue,
-    updateRecord,
-    setRecordDirty,
-    setSourceTokens,
-    setTargetTokens,
+    executeSave,
+    isAuthenticated,
+    requireAuth,
+    handleUnauthorized,
+    showSaveError,
   ]);
 
   const handleSave = useCallback(() => performSave(), [performSave]);
@@ -321,25 +374,27 @@ export function RecordEditor() {
             </label>
             <textarea
               value={sourceValue}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setSourceValue(nextValue);
-              const nextTokens = buildTokensFromValue(
-                nextValue,
-                sourceTokens,
-              );
-              setSourceTokens(nextTokens);
-              setAlignment((prev) =>
-                prev.filter((item) =>
-                  nextTokens.some((token) => token.id === item.source_id),
-                ),
-              );
-              setDirty();
-            }}
-            rows={3}
-            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-        </section>
+              readOnly={!isAuthenticated}
+              onChange={(event) => {
+                if (!isAuthenticated) return;
+                const nextValue = event.target.value;
+                setSourceValue(nextValue);
+                const nextTokens = buildTokensFromValue(
+                  nextValue,
+                  sourceTokens,
+                );
+                setSourceTokens(nextTokens);
+                setAlignment((prev) =>
+                  prev.filter((item) =>
+                    nextTokens.some((token) => token.id === item.source_id),
+                  ),
+                );
+                setDirty();
+              }}
+              rows={3}
+              className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </section>
 
           <section className="space-y-2">
             <label className="block text-xs uppercase tracking-wide text-neutral-500">
@@ -347,7 +402,9 @@ export function RecordEditor() {
             </label>
             <textarea
               value={targetValue}
+              readOnly={!isAuthenticated}
               onChange={(event) => {
+                if (!isAuthenticated) return;
                 const nextValue = event.target.value;
                 setTargetValue(nextValue);
                 const nextTokens = buildTokensFromValue(
@@ -373,7 +430,9 @@ export function RecordEditor() {
             </label>
             <input
               value={metaValue}
+              readOnly={!isAuthenticated}
               onChange={(event) => {
+                if (!isAuthenticated) return;
                 setMetaValue(event.target.value);
                 setDirty();
               }}
@@ -387,7 +446,9 @@ export function RecordEditor() {
               sourceTokens={sourceTokens}
               targetTokens={targetTokens}
               alignment={alignment}
+              readOnly={!isAuthenticated}
               onUpdateSourceToken={(index, token) => {
+                if (!isAuthenticated) return;
                 setSourceTokens((prev) => {
                   const next = [...prev];
                   next[index] = token;
@@ -396,6 +457,7 @@ export function RecordEditor() {
                 setRecordDirty(true);
               }}
               onUpdateTargetToken={(index, token) => {
+                if (!isAuthenticated) return;
                 setTargetTokens((prev) => {
                   const next = [...prev];
                   next[index] = token;
@@ -404,6 +466,7 @@ export function RecordEditor() {
                 setRecordDirty(true);
               }}
               onAlignmentChange={(nextAlignment) => {
+                if (!isAuthenticated) return;
                 setAlignment(nextAlignment);
                 setRecordDirty(true);
               }}

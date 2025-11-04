@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
+import { useAuthStore } from '@/app/_stores/auth-store';
 import {
   useCreateRepoMutation,
   useDeleteRepoMutation,
@@ -27,6 +28,8 @@ export function RepoSidebar() {
   const openRepoTab = useDashboardStore((state) => state.openRepoTab);
   const closeRepoTab = useDashboardStore((state) => state.closeRepoTab);
   const requestSave = useDashboardStore((state) => state.requestSave);
+  const requireAuth = useAuthStore((state) => state.requireAuth);
+  const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
 
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const [menuState, setMenuState] = useState<{
@@ -75,7 +78,21 @@ export function RepoSidebar() {
     };
   }, [menuState]);
 
+  const performCreateRepo = async (name: string) => {
+    const result = await createRepo.mutateAsync(name);
+    if (result?.id) {
+      const saved = await requestSave();
+      if (!saved) {
+        return;
+      }
+      openRepoTab(result.id);
+    }
+  };
+
   const handleCreateRepo = async () => {
+    const authed = await requireAuth();
+    if (!authed) return;
+
     const input = window.prompt('请输入新资料库名称');
     if (!input) return;
     const trimmed = input.trim();
@@ -87,24 +104,33 @@ export function RepoSidebar() {
     }
 
     try {
-      const result = await createRepo.mutateAsync(trimmed);
-      if (result?.id) {
-        const saved = await requestSave();
-        if (!saved) {
-          return;
-        }
-        openRepoTab(result.id);
-      }
+      await performCreateRepo(trimmed);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        handleUnauthorized(async () => {
+          await performCreateRepo(trimmed);
+        });
+        return;
+      }
+
       const message =
         error instanceof ApiError
           ? error.message
-        : '创建资料库失败，请稍后再试。';
+          : '创建资料库失败，请稍后再试。';
       window.alert(message);
     }
   };
 
+  const performRenameRepo = async (repoId: number, nextName: string) => {
+    const saved = await requestSave();
+    if (!saved) return;
+    await renameRepo.mutateAsync({ id: repoId, name: nextName });
+  };
+
   const handleRenameRepo = async (repoId: number, currentName: string) => {
+    const authed = await requireAuth();
+    if (!authed) return;
+
     const input = window.prompt('请输入新的资料库名称', currentName);
     if (!input) return;
     const trimmed = input.trim();
@@ -120,10 +146,15 @@ export function RepoSidebar() {
     }
 
     try {
-      const saved = await requestSave();
-      if (!saved) return;
-      await renameRepo.mutateAsync({ id: repoId, name: trimmed });
+      await performRenameRepo(repoId, trimmed);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        handleUnauthorized(async () => {
+          await performRenameRepo(repoId, trimmed);
+        });
+        return;
+      }
+
       const message =
         error instanceof ApiError
           ? error.message
@@ -132,20 +163,34 @@ export function RepoSidebar() {
     }
   };
 
+  const performDeleteRepo = async (repoId: number) => {
+    if (repoId === activeRepoId) {
+      const saved = await requestSave();
+      if (!saved) return;
+    }
+    await deleteRepo.mutateAsync(repoId);
+    closeRepoTab(repoId);
+  };
+
   const handleDeleteRepo = async (repoId: number, repoName: string) => {
+    const authed = await requireAuth();
+    if (!authed) return;
+
     const confirmed = window.confirm(
       `确定要删除资料库“${repoName}”吗？此操作会删除其所有条目。`,
     );
     if (!confirmed) return;
 
     try {
-      if (repoId === activeRepoId) {
-        const saved = await requestSave();
-        if (!saved) return;
-      }
-      await deleteRepo.mutateAsync(repoId);
-      closeRepoTab(repoId);
+      await performDeleteRepo(repoId);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        handleUnauthorized(async () => {
+          await performDeleteRepo(repoId);
+        });
+        return;
+      }
+
       const message =
         error instanceof ApiError
           ? error.message

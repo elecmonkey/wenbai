@@ -42,6 +42,7 @@ type TokenAlignmentEditorProps = {
   onUpdateSourceToken: (index: number, token: Token) => void;
   onUpdateTargetToken: (index: number, token: Token) => void;
   onAlignmentChange: (alignment: Alignment[]) => void;
+  readOnly?: boolean;
 };
 
 type LineSegment = {
@@ -63,6 +64,7 @@ export function TokenAlignmentEditor({
   onUpdateSourceToken,
   onUpdateTargetToken,
   onAlignmentChange,
+  readOnly = false,
 }: TokenAlignmentEditorProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -72,6 +74,7 @@ export function TokenAlignmentEditor({
   const [pendingTargetId, setPendingTargetId] = useState<number | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [lineSegments, setLineSegments] = useState<LineSegment[]>([]);
+  const isReadOnly = readOnly;
 
   const computeLayout = useCallback(() => {
     const scrollContainer = scrollContainerRef.current;
@@ -130,6 +133,7 @@ export function TokenAlignmentEditor({
 
   const toggleAlignment = useCallback(
     (sourceId: number, targetId: number) => {
+      if (isReadOnly) return;
       const exists = alignment.some(
         (item) => item.source_id === sourceId && item.target_id === targetId,
       );
@@ -146,11 +150,12 @@ export function TokenAlignmentEditor({
         ]);
       }
     },
-    [alignment, onAlignmentChange],
+    [alignment, onAlignmentChange, isReadOnly],
   );
 
   const handleSourceClick = useCallback(
     (tokenId: number) => {
+      if (isReadOnly) return;
       if (pendingSourceId === tokenId) {
         setPendingSourceId(null);
         return;
@@ -163,11 +168,12 @@ export function TokenAlignmentEditor({
       }
       setPendingSourceId(tokenId);
     },
-    [pendingSourceId, pendingTargetId, toggleAlignment],
+    [pendingSourceId, pendingTargetId, toggleAlignment, isReadOnly],
   );
 
   const handleTargetClick = useCallback(
     (tokenId: number) => {
+      if (isReadOnly) return;
       if (pendingTargetId === tokenId) {
         setPendingTargetId(null);
         return;
@@ -180,7 +186,7 @@ export function TokenAlignmentEditor({
       }
       setPendingTargetId(tokenId);
     },
-    [pendingSourceId, pendingTargetId, toggleAlignment],
+    [pendingSourceId, pendingTargetId, toggleAlignment, isReadOnly],
   );
 
   const highlightSource = useCallback(
@@ -231,14 +237,17 @@ export function TokenAlignmentEditor({
       index: number,
       type: 'source' | 'target',
       onUpdate: (index: number, token: Token) => void,
+      disabled: boolean,
     ) => (
       <select
         value={toSelectValue(token.pos)}
         onChange={(event) =>
-          onUpdate(index, {
-            ...token,
-            pos: event.target.value === '-' ? null : event.target.value,
-          })
+          disabled
+            ? undefined
+            : onUpdate(index, {
+                ...token,
+                pos: event.target.value === '-' ? null : event.target.value,
+              })
         }
         className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
       >
@@ -258,14 +267,18 @@ export function TokenAlignmentEditor({
       index: number,
       type: 'source' | 'target',
       onUpdate: (index: number, token: Token) => void,
+      disabled: boolean,
     ) => (
       <select
         value={toSelectValue(token.syntax_role)}
         onChange={(event) =>
-          onUpdate(index, {
-            ...token,
-            syntax_role: event.target.value === '-' ? null : event.target.value,
-          })
+          disabled
+            ? undefined
+            : onUpdate(index, {
+                ...token,
+                syntax_role:
+                  event.target.value === '-' ? null : event.target.value,
+              })
         }
         className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
       >
@@ -323,17 +336,30 @@ export function TokenAlignmentEditor({
                 sourceTokens.map((token, index) => {
                   const tokenId = getTokenId(token, index);
                   return (
-                  <div key={tokenId} className="flex flex-col items-center gap-2">
-                    <div className="flex flex-col gap-2">
-                      {renderPosSelect(token, index, 'source', onUpdateSourceToken)}
-                      {renderSyntaxSelect(token, index, 'source', onUpdateSourceToken)}
-                    </div>
+                    <div key={tokenId} className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col gap-2">
+                        {renderPosSelect(
+                          token,
+                          index,
+                          'source',
+                          onUpdateSourceToken,
+                          isReadOnly,
+                        )}
+                        {renderSyntaxSelect(
+                          token,
+                          index,
+                          'source',
+                          onUpdateSourceToken,
+                          isReadOnly,
+                        )}
+                      </div>
                       <button
                         ref={(element) => {
                           sourceRefs.current[tokenId] = element;
                         }}
                         onClick={() => handleSourceClick(tokenId)}
                         className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightSource(tokenId)}`}
+                        aria-disabled={isReadOnly}
                       >
                         {token.word || `词元 ${index + 1}`}
                       </button>
@@ -357,13 +383,26 @@ export function TokenAlignmentEditor({
                         }}
                         onClick={() => handleTargetClick(tokenId)}
                         className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightTarget(tokenId)}`}
+                        aria-disabled={isReadOnly}
                       >
                         {token.word || `词元 ${index + 1}`}
                       </button>
-                    <div className="flex flex-col gap-2">
-                      {renderPosSelect(token, index, 'target', onUpdateTargetToken)}
-                      {renderSyntaxSelect(token, index, 'target', onUpdateTargetToken)}
-                    </div>
+                      <div className="flex flex-col gap-2">
+                        {renderPosSelect(
+                          token,
+                          index,
+                          'target',
+                          onUpdateTargetToken,
+                          isReadOnly,
+                        )}
+                        {renderSyntaxSelect(
+                          token,
+                          index,
+                          'target',
+                          onUpdateTargetToken,
+                          isReadOnly,
+                        )}
+                      </div>
                     </div>
                   );
                 })
@@ -411,7 +450,10 @@ export function TokenAlignmentEditor({
                 </span>
                 <select
                   value={item.relation_type ?? '语义'}
-                  onChange={(event) => handleRelationChange(index, event.target.value)}
+                  onChange={(event) => {
+                    if (isReadOnly) return;
+                    handleRelationChange(index, event.target.value);
+                  }}
                   className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
                 >
                   {RELATION_OPTIONS.map((option) => (
@@ -421,7 +463,10 @@ export function TokenAlignmentEditor({
                   ))}
                 </select>
                 <button
-                  onClick={() => handleRemoveAlignment(index)}
+                  onClick={() => {
+                    if (isReadOnly) return;
+                    handleRemoveAlignment(index);
+                  }}
                   className="ml-auto rounded border border-transparent px-2 py-1 text-xs text-neutral-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
                 >
                   删除

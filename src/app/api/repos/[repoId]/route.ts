@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{
@@ -21,6 +22,14 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     return NextResponse.json(
       { message: "error", error: "Invalid repository id" },
       { status: 400 },
+    );
+  }
+
+  const user = await getAuthUser(req);
+  if (!user) {
+    return NextResponse.json(
+      { message: "error", error: "未授权，请先登录" },
+      { status: 401 },
     );
   }
 
@@ -109,6 +118,14 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     return NextResponse.json(
       { message: "error", error: "Invalid repository id" },
       { status: 400 },
+    );
+  }
+
+  const user = await getAuthUser(_req);
+  if (!user) {
+    return NextResponse.json(
+      { message: "error", error: "未授权，请先登录" },
+      { status: 401 },
     );
   }
 

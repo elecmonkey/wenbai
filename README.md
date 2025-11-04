@@ -61,3 +61,15 @@ pnpm dev
 ```
 
 打开 [http://localhost:3000](http://localhost:3000) 即可预览。
+
+### 6. 管理后台账号
+
+项目不开放前端注册入口，如需创建或更新内部账号，请使用内置脚本：
+
+```bash
+# 创建新用户
+pnpm create-user -- --username admin --password "your-secret" --displayName "管理员"
+
+# 若用户已存在并需重置密码，可追加 --force
+pnpm create-user -- --username admin --password "new-secret" --force
+```

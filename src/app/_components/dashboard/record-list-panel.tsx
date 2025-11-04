@@ -7,6 +7,7 @@ import {
   useRecordsQuery,
 } from '@/app/_queries/records';
 import { ApiError } from '@/lib/api-client';
+import { useAuthStore } from '@/app/_stores/auth-store';
 import { SaveStatusIndicator } from './save-status-indicator';
 
 export function RecordListPanel() {
@@ -18,6 +19,8 @@ export function RecordListPanel() {
   const requestSave = useDashboardStore((state) => state.requestSave);
   const recordDirty = useDashboardStore((state) => state.recordDirty);
   const recordSaving = useDashboardStore((state) => state.recordSaving);
+  const requireAuth = useAuthStore((state) => state.requireAuth);
+  const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
 
   const {
     data: records = [],
@@ -56,15 +59,21 @@ export function RecordListPanel() {
       return;
     }
 
+    const authed = await requireAuth();
+    if (!authed) return;
+
     const source = window.prompt('请输入新条目的文言原文');
     if (!source) return;
+
+    const trimmedSource = source.trim();
+    if (!trimmedSource) return;
 
     try {
       const saved = await requestSave();
       if (!saved) return;
       const result = await createRecord.mutateAsync({
         repoId: activeRepoId,
-        source: source.trim(),
+        source: trimmedSource,
       });
       if (result?.id) {
         setActiveRecordId(result.id);
@@ -74,6 +83,26 @@ export function RecordListPanel() {
         mutationError instanceof ApiError
           ? mutationError.message
           : '创建条目失败，请稍后再试。';
+
+      if (
+        mutationError instanceof ApiError &&
+        mutationError.status === 401
+      ) {
+        handleUnauthorized(async () => {
+          if (!activeRepoId) return;
+          const saved = await requestSave();
+          if (!saved) return;
+          const result = await createRecord.mutateAsync({
+            repoId: activeRepoId,
+            source: trimmedSource,
+          });
+          if (result?.id) {
+            setActiveRecordId(result.id);
+          }
+        });
+        return;
+      }
+
       window.alert(message);
     }
   };

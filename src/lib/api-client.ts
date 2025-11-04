@@ -19,6 +19,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const response = await fetch(input, {
     ...init,
+    credentials: 'include',
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),

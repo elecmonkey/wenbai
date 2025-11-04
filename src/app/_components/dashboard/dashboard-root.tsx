@@ -4,11 +4,13 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { DashboardInitialData } from '@/types/dashboard';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
+import { useAuthStore } from '@/app/_stores/auth-store';
 import { RepoSidebar } from './repo-sidebar';
 import { RepoTabs } from './repo-tabs';
 import { RecordListPanel } from './record-list-panel';
 import { RecordEditor } from './record-editor';
 import { StatusBar } from './status-bar';
+import { LoginModal } from './login-modal';
 
 type DashboardRootProps = {
   initialData: DashboardInitialData;
@@ -18,6 +20,8 @@ export function DashboardRoot({ initialData }: DashboardRootProps) {
   const queryClient = useQueryClient();
   const hasInitialized = useRef(false);
   const initializeStore = useDashboardStore((state) => state.initialize);
+  const refreshSession = useAuthStore((state) => state.refreshSession);
+  const loginModalOpen = useAuthStore((state) => state.loginModalOpen);
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -50,6 +54,10 @@ export function DashboardRoot({ initialData }: DashboardRootProps) {
     hasInitialized.current = true;
   }, [initialData, initializeStore, queryClient]);
 
+  useEffect(() => {
+    void refreshSession();
+  }, [refreshSession]);
+
   return (
     <div className="flex h-screen bg-neutral-100 text-neutral-900">
       <RepoSidebar />
@@ -61,6 +69,7 @@ export function DashboardRoot({ initialData }: DashboardRootProps) {
         </div>
         <StatusBar />
       </section>
+      {loginModalOpen ? <LoginModal /> : null}
     </div>
   );
 }

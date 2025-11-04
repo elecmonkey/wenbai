@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{
@@ -13,7 +14,10 @@ function parseRepoId(rawId: string) {
   return Number.isFinite(repoId) && repoId > 0 ? repoId : null;
 }
 
-export async function GET(_req: NextRequest, context: RouteContext) {
+export async function GET(
+  _request: NextRequest,
+  context: RouteContext,
+) {
   const { repoId: rawRepoId } = await context.params;
   const repoId = parseRepoId(rawRepoId);
 
@@ -33,10 +37,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ message: "success", data: records });
   } catch (error) {
-    console.error(
-      `GET /api/repos/${repoId}/records failed`,
-      error,
-    );
+    console.error(`GET /api/repos/${repoId}/records failed`, error);
     return NextResponse.json(
       { message: "error", error: "Internal Server Error" },
       { status: 500 },
@@ -44,7 +45,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
   }
 }
 
-export async function POST(req: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const { repoId: rawRepoId } = await context.params;
   const repoId = parseRepoId(rawRepoId);
 
@@ -55,48 +56,62 @@ export async function POST(req: NextRequest, context: RouteContext) {
     );
   }
 
+  const user = await getAuthUser(request);
+  if (!user) {
+    return NextResponse.json(
+      { message: "error", error: "未授权，请先登录" },
+      { status: 401 },
+    );
+  }
+
   try {
-    const body = await req.json().catch(() => null);
+    const body = await request.json().catch(() => null);
     const source =
-      typeof body?.source === "string" ? body.source.trim() : undefined;
+      typeof body?.source === "string" ? body.source.trim() : "";
 
     if (!source) {
       return NextResponse.json(
-        { message: "error", error: "Missing source text" },
+        { message: "error", error: "缺少文言原文" },
         { status: 400 },
       );
     }
 
-    const record = await prisma.record.create({
-      data: { repoId, source },
-      select: { id: true, source: true, target: true, meta: true },
+    const repo = await prisma.repo.findUnique({
+      where: { id: repoId },
+      select: { id: true },
     });
 
-    return NextResponse.json(
-      { message: "success", data: record },
-      { status: 201 },
-    );
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2003"
-    ) {
+    if (!repo) {
       return NextResponse.json(
         { message: "error", error: "Repository not found" },
         { status: 404 },
       );
     }
+
+    const record = await prisma.record.create({
+      data: {
+        repoId,
+        source,
+      },
+      select: { id: true },
+    });
+
+    return NextResponse.json(
+      { message: "success", data: { id: record.id } },
+      { status: 201 },
+    );
+  } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { message: "error", error: "该资料库已存在同名条目" },
+        { message: "error", error: "条目已存在" },
         { status: 409 },
       );
     }
 
-    console.error(`POST /api/repos/${rawRepoId}/records failed`, error);
+    console.error(`POST /api/repos/${repoId}/records failed`, error);
     return NextResponse.json(
       { message: "error", error: "Internal Server Error" },
       { status: 500 },

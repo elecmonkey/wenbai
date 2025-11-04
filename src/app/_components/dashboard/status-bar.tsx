@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useReposQuery } from '@/app/_queries/repos';
 import { useRecordsQuery } from '@/app/_queries/records';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
+import { useAuthStore } from '@/app/_stores/auth-store';
 import { RepoInfoModal } from './repo-info-modal';
 
 export function StatusBar() {
@@ -14,6 +15,9 @@ export function StatusBar() {
   const recordSaving = useDashboardStore((state) => state.recordSaving);
   const { data: records = [] } = useRecordsQuery(activeRepoId);
   const [repoInfoOpen, setRepoInfoOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const openLoginModal = useAuthStore((state) => state.openLoginModal);
+  const logout = useAuthStore((state) => state.logout);
 
   const statusText = useMemo(() => {
     const repoName =
@@ -38,12 +42,36 @@ export function StatusBar() {
     <>
       <footer className="flex items-center justify-between border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-500">
         <span className="truncate pr-4">{statusText}</span>
-        <button
-          onClick={() => setRepoInfoOpen(true)}
-          className="shrink-0 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100"
-        >
-          关于本站
-        </button>
+        <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              <span className="shrink-0 text-neutral-600">
+                欢迎您，{user.displayName ?? user.username}
+              </span>
+              <button
+                onClick={() => {
+                  void logout();
+                }}
+                className="shrink-0 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100"
+              >
+                退出登录
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => openLoginModal()}
+              className="shrink-0 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100"
+            >
+              登录
+            </button>
+          )}
+          <button
+            onClick={() => setRepoInfoOpen(true)}
+            className="shrink-0 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100"
+          >
+            关于本站
+          </button>
+        </div>
       </footer>
       <RepoInfoModal
         open={repoInfoOpen}
