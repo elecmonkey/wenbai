@@ -370,14 +370,14 @@ export function RecordListPanel() {
             onClick={handleCreateRecord}
             disabled={!activeRepoId || createRecord.isPending || !isAuthenticated}
             disabledHint={!isAuthenticated ? '请登录后创建条目' : undefined}
-            className="rounded bg-blue-600 px-2 py-1 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+            className="rounded h-8 bg-blue-600 px-2 py-1 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
           >
             ＋ 新条目
           </DisabledHintButton>
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="flex h-7 w-7 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
             aria-label="刷新条目列表"
           >
             <IconRefresh />
@@ -389,7 +389,7 @@ export function RecordListPanel() {
             }}
             disabled={importInFlight || !isAuthenticated || !activeRepoId}
             disabledHint={importInFlight ? '正在导入，请稍候' : importDisabledHint}
-            className="flex h-7 w-7 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
             aria-label="导入条目"
           >
             <IconImport />
