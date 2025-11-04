@@ -49,6 +49,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
     const currentRepo = await prisma.repo.findUnique({
       where: { id: repoId },
+      cacheStrategy: { ttl: 0 },
       select: { id: true, name: true },
     });
 
@@ -68,6 +69,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         name,
         NOT: { id: repoId },
       },
+      cacheStrategy: { ttl: 0 },
       select: { id: true },
     });
 

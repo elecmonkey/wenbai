@@ -39,6 +39,7 @@ export async function GET(
   try {
     const record = await prisma.record.findFirst({
       where: { id: recordId, repoId },
+      cacheStrategy: { ttl: 0 },
       select: {
         id: true,
         source: true,
@@ -160,6 +161,7 @@ export async function PUT(
 
     const record = await prisma.record.findFirst({
       where: { id: recordId, repoId },
+      cacheStrategy: { ttl: 0 },
       select: { id: true },
     });
 

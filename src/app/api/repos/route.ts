@@ -8,6 +8,7 @@ import { getAuthUser } from "@/lib/auth";
 export async function GET() {
   try {
     const repos = await prisma.repo.findMany({
+      cacheStrategy: { ttl: 0 },
       select: { id: true, name: true },
       orderBy: { id: "asc" },
     });

@@ -33,6 +33,7 @@ export async function GET(
   try {
     const records = await prisma.record.findMany({
       where: { repoId },
+      cacheStrategy: { ttl: 0 },
       select: { id: true, source: true, target: true, meta: true },
       orderBy: { id: "asc" },
     });
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const repo = await prisma.repo.findUnique({
       where: { id: repoId },
+      cacheStrategy: { ttl: 0 },
       select: { id: true },
     });
 

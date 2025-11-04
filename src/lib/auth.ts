@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify, SignJWT } from 'jose';
 import { prisma } from './prisma';
 
 export const AUTH_COOKIE_NAME = 'wenbai_token';
@@ -9,7 +9,7 @@ export const SEVEN_DAYS_IN_SECONDS = 60 * 60 * 24 * 7;
 let cachedSecret: string | null = null;
 
 type TokenPayload = {
-  sub: number;
+  sub: string;
   username: string;
   displayName?: string | null;
 };
@@ -31,7 +31,9 @@ function isTokenPayload(value: unknown): value is TokenPayload {
   );
 }
 
-function getAuthSecret() {
+const JWT_ALG = 'HS256';
+
+async function getAuthSecret() {
   if (cachedSecret) {
     return cachedSecret;
   }
@@ -44,13 +46,22 @@ function getAuthSecret() {
 }
 
 export function signAuthToken(user: AuthUser) {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error('Missing AUTH_SECRET environment variable');
+  }
   const payload: TokenPayload = {
-    sub: user.id,
+    sub: String(user.id),
     username: user.username,
     displayName: user.displayName,
   };
-  const secret = getAuthSecret();
-  return jwt.sign(payload, secret, { expiresIn: SEVEN_DAYS_IN_SECONDS });
+  const iat = Math.floor(Date.now() / 1000);
+  const exp = iat + SEVEN_DAYS_IN_SECONDS;
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: JWT_ALG })
+    .setIssuedAt(iat)
+    .setExpirationTime(exp)
+    .sign(new TextEncoder().encode(secret));
 }
 
 async function readToken(request?: NextRequest | Request | null) {
@@ -76,14 +87,26 @@ export async function getAuthUser(
   }
 
   try {
-    const secret = getAuthSecret();
-    const payload = jwt.verify(token, secret);
+    const secret = await getAuthSecret();
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret),
+      {
+        algorithms: [JWT_ALG],
+      },
+    );
     if (!isTokenPayload(payload)) {
       return null;
     }
 
+    const userId = Number(payload.sub);
+    if (!Number.isFinite(userId)) {
+      return null;
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: { id: userId },
+      cacheStrategy: { ttl: 0 },
       select: { id: true, username: true, displayName: true },
     });
 

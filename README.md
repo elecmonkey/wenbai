@@ -103,11 +103,11 @@ pnpm create-user -- --username admin --password "new-secret" --displayName "管�
    - 清理 Edge runtime 声明：删除各 API 和 `src/app/page.tsx` 中的 `export const runtime = 'edge'`。
 
 2. **强制接口运行在 Node Runtime**
-   - 在保留 Node 方案时，为避免整站都落入 Node，可以仅在需要 Prisma 的接口手动声明：
+   - 某些 API 需要 Node 专用依赖（例如 `/api/auth/login` 使用 `bcryptjs`），即使全局采用 Edge，也应在文件中声明：
      ```ts
      export const runtime = 'nodejs';
      ```
-     比如 `src/app/api/**` 和 `src/app/page.tsx`。
+   - 在完全回退到 Node 方案时，可为所有使用 Prisma 的路由与页面加上此声明，避免剩余页面受影响。
 
 3. **重新生成 Prisma Client**
    - 切回 Node 后运行：

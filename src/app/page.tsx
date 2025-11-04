@@ -6,6 +6,7 @@ export const runtime = "edge";
 
 export default async function Home() {
   const repos = (await prisma.repo.findMany({
+    cacheStrategy: { ttl: 0 },
     select: { id: true, name: true },
     orderBy: { id: "asc" },
   })) satisfies Repo[];

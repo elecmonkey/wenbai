@@ -53,6 +53,7 @@ async function main() {
 
   const existing = await prisma.user.findUnique({
     where: { username },
+    cacheStrategy: { ttl: 0 },
   });
 
   if (existing && !force) {

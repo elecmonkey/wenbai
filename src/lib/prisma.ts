@@ -1,5 +1,4 @@
 import { PrismaClient as EdgePrismaClient } from '@prisma/client/edge';
-import type { PrismaClient as BasePrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
 const datasourceUrl = process.env.DATABASE_URL;
@@ -13,18 +12,19 @@ function createPrismaClient() {
   }).$extends(withAccelerate());
 }
 
-type AcceleratedPrisma = ReturnType<typeof createPrismaClient>;
+type AcceleratedPrismaClient = ReturnType<typeof createPrismaClient>;
 
 type GlobalWithPrisma = typeof globalThis & {
-  prisma?: AcceleratedPrisma;
+  prisma?: AcceleratedPrismaClient;
 };
 
 const globalForPrisma = globalThis as GlobalWithPrisma;
 
-const acceleratedClient = globalForPrisma.prisma ?? createPrismaClient();
+const acceleratedClient: AcceleratedPrismaClient =
+  globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = acceleratedClient;
 }
 
-export const prisma = acceleratedClient as unknown as BasePrismaClient;
+export const prisma = acceleratedClient;
