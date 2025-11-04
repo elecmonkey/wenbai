@@ -9,6 +9,7 @@ import {
 import { ApiError } from '@/lib/api-client';
 import { useAuthStore } from '@/app/_stores/auth-store';
 import { SaveStatusIndicator } from './save-status-indicator';
+import { DisabledHintButton } from './disabled-hint-button';
 
 export function RecordListPanel() {
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
@@ -115,18 +116,18 @@ export function RecordListPanel() {
   return (
     <div className="flex w-80 flex-col border-r border-neutral-200 bg-white">
       <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3 text-sm">
-        <button
+        <DisabledHintButton
           onClick={handleCreateRecord}
           disabled={
             !activeRepoId || createRecord.isPending || !isAuthenticated
           }
-          title={
+          disabledHint={
             !isAuthenticated ? '请登录后创建条目' : undefined
           }
           className="rounded bg-blue-600 px-2 py-1 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           ＋ 新条目
-        </button>
+        </DisabledHintButton>
         <button
           onClick={handleRefresh}
           disabled={isLoading}

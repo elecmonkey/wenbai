@@ -11,6 +11,7 @@ import {
   useReposQuery,
 } from '@/app/_queries/repos';
 import { ApiError } from '@/lib/api-client';
+import { DisabledHintButton } from './disabled-hint-button';
 
 export function RepoSidebar() {
   const {
@@ -246,14 +247,14 @@ export function RepoSidebar() {
         >
           ⟳
         </button>
-        <button
+        <DisabledHintButton
           onClick={handleCreateRepo}
           disabled={createRepo.isPending || !isAuthenticated}
-          title={!isAuthenticated ? '请登录后创建资料库' : undefined}
+          disabledHint={!isAuthenticated ? '请登录后创建资料库' : undefined}
           className="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           ＋
-        </button>
+        </DisabledHintButton>
         </div>
       </div>
 

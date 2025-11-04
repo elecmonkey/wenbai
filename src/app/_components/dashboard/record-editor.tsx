@@ -10,6 +10,7 @@ import {
 import { ApiError } from '@/lib/api-client';
 import type { Alignment, RecordDetailPayload, Token } from '@/types/dashboard';
 import { TokenAlignmentEditor } from './token-alignment-editor';
+import { DisabledHintButton } from './disabled-hint-button';
 
 const joinTokensWithSlash = (tokens: Token[] | undefined, fallback: string) => {
   if (tokens && tokens.length > 0) {
@@ -388,28 +389,28 @@ export function RecordEditor() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 text-sm">
-        <button
+        <DisabledHintButton
           onClick={handleSave}
           disabled={!recordDirty || updateRecord.isPending || !isAuthenticated}
-          title={!isAuthenticated ? '请登录后保存修改' : undefined}
+          disabledHint={!isAuthenticated ? '请登录后保存修改' : undefined}
           className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           保存
-        </button>
-        <button
+        </DisabledHintButton>
+        <DisabledHintButton
           onClick={handleReset}
           disabled={!recordDirty || !isAuthenticated}
-          title={!isAuthenticated ? '请登录后撤销修改' : undefined}
+          disabledHint={!isAuthenticated ? '请登录后撤销修改' : undefined}
           className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
         >
           撤销更改
-        </button>
-        <button
+        </DisabledHintButton>
+        <DisabledHintButton
           onClick={() => {
             void recordQuery.refetch();
           }}
           disabled={recordDirty || recordSaving || refreshing}
-          title={
+          disabledHint={
             recordDirty || recordSaving
               ? '请先保存或撤销当前更改后再刷新'
               : undefined
@@ -421,7 +422,7 @@ export function RecordEditor() {
           ) : (
             '刷新'
           )}
-        </button>
+        </DisabledHintButton>
         <span className="ml-auto text-xs text-neutral-500">
           当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
         </span>
