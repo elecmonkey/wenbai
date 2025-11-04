@@ -29,7 +29,7 @@ export function RepoTabs() {
               加载资料库标签…
             </div>
           ) : openRepoIds.length === 0 ? (
-            <div className="flex h-10 items-center rounded border border-dashed border-neutral-200 bg-neutral-50 px-4 text-neutral-500">
+            <div className="flex h-10 items-center rounded-t border border-b-0 border-dashed border-neutral-200 bg-neutral-50 px-4 text-neutral-500">
               尚未打开任何资料库，请从左侧选择。
             </div>
           ) : (
