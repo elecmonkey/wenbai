@@ -14,8 +14,8 @@ import { useAuthStore } from '@/app/_stores/auth-store';
 import { SaveStatusIndicator } from './save-status-indicator';
 import { DisabledHintButton } from './disabled-hint-button';
 import { ImportRecordModal } from './import/import-record-modal';
-import { IconRefresh } from '../icons/icon-refresh';
-import { IconImport } from '../icons/icon-import';
+import { IconRefresh } from '@/app/_components/icons/icon-refresh';
+import { IconImport } from '@/app/_components/icons/icon-import';
 import type { RecordDetailPayload } from '@/types/dashboard';
 
 export function RecordListPanel() {

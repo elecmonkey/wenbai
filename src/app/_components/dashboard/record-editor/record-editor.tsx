@@ -9,7 +9,7 @@ import {
 } from '@/app/_queries/records';
 import { ApiError } from '@/lib/api-client';
 import type { Alignment, RecordDetailPayload, Token } from '@/types/dashboard';
-import { TokenAlignmentEditor } from '../token-alignment/token-alignment-editor';
+import { TokenAlignmentEditor } from '@/app/_components/dashboard/token-alignment/token-alignment-editor';
 import { RecordEditorToolbar } from './components/toolbar';
 import { RecordEditorTextSection } from './components/text-section';
 import { RecordEditorMetaField } from './components/meta-field';

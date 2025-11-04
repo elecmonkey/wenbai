@@ -12,7 +12,7 @@ import {
 } from '@/app/_queries/repos';
 import { ApiError } from '@/lib/api-client';
 import { DisabledHintButton } from './disabled-hint-button';
-import { IconRefresh } from '../icons/icon-refresh';
+import { IconRefresh } from '@/app/_components/icons/icon-refresh';
 
 export function RepoSidebar() {
   const {

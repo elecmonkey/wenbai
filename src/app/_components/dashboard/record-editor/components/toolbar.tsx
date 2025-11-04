@@ -1,7 +1,7 @@
-import { DisabledHintButton } from '../../disabled-hint-button';
-import { IconRefresh } from '../../../icons/icon-refresh';
-import { IconUndo } from '../../../icons/icon-undo';
-import { IconSave } from '../../../icons/icon-save';
+import { DisabledHintButton } from '@/app/_components/dashboard/disabled-hint-button';
+import { IconRefresh } from '@/app/_components/icons/icon-refresh';
+import { IconUndo } from '@/app/_components/icons/icon-undo';
+import { IconSave } from '@/app/_components/icons/icon-save';
 
 export type RecordEditorToolbarProps = {
   onSave: () => void;
