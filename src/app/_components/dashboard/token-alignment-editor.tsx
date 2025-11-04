@@ -392,12 +392,22 @@ export function TokenAlignmentEditor({
                 key={`${item.source_id}-${item.target_id}`}
                 className="flex flex-wrap items-center gap-3 rounded border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700"
               >
-                <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
-                  {sourceToken?.word || `词元 ${item.source_id}`}
+                <span className="flex items-center gap-2">
+                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-600">
+                    文
+                  </span>
+                  <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
+                    {sourceToken?.word || `词元 ${item.source_id}`}
+                  </span>
                 </span>
                 <span className="text-neutral-400">→</span>
-                <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
-                  {targetToken?.word || `词元 ${item.target_id}`}
+                <span className="flex items-center gap-2">
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                    白
+                  </span>
+                  <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
+                    {targetToken?.word || `词元 ${item.target_id}`}
+                  </span>
                 </span>
                 <select
                   value={item.relation_type ?? '语义'}
