@@ -457,13 +457,23 @@ export function RecordListPanel() {
             }}
             className="absolute z-20 w-36 overflow-hidden rounded border border-neutral-200 bg-white shadow-lg"
           >
-            <button
-              onClick={handleDeleteAction}
-              disabled={deleteRecord.isPending}
-              className="flex w-full items-center px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
-            >
-              删除
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={handleDeleteAction}
+                disabled={deleteRecord.isPending}
+                className="flex w-full items-center px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+              >
+                删除
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="flex w-full items-center px-3 py-2 text-left text-sm text-neutral-400"
+              >
+                需登录后才可操作
+              </button>
+            )}
           </div>
         )}
       </div>

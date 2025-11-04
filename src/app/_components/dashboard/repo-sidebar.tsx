@@ -305,20 +305,32 @@ export function RepoSidebar() {
           }}
           className="absolute z-20 w-40 overflow-hidden rounded border border-neutral-200 bg-white shadow-lg"
         >
-          <button
-            onClick={handleRenameAction}
-            disabled={renameRepo.isPending}
-            className="flex w-full items-center px-3 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-          >
-            重命名
-          </button>
-          <button
-            onClick={handleDeleteAction}
-            disabled={deleteRepo.isPending}
-            className="flex w-full items-center px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
-          >
-            删除
-          </button>
+          {isAuthenticated ? (
+            <>
+              <button
+                onClick={handleRenameAction}
+                disabled={renameRepo.isPending}
+                className="flex w-full items-center px-3 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+              >
+                重命名
+              </button>
+              <button
+                onClick={handleDeleteAction}
+                disabled={deleteRepo.isPending}
+                className="flex w-full items-center px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+              >
+                删除
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="flex w-full items-center px-3 py-2 text-left text-sm text-neutral-400"
+            >
+              需登录后才可操作
+            </button>
+          )}
         </div>
       )}
     </aside>
