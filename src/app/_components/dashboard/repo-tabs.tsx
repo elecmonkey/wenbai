@@ -23,7 +23,7 @@ export function RepoTabs() {
   return (
     <header className="border-b border-neutral-200 bg-white px-4">
       <div className="overflow-x-auto scrollbar-thin">
-        <div className="inline-flex min-w-full items-center gap-2 py-2 text-sm">
+        <div className="inline-flex min-w-full items-center gap-2 pt-2 text-sm">
           {isLoading ? (
             <div className="flex h-10 items-center px-3 text-neutral-500">
               加载资料库标签…
@@ -40,7 +40,7 @@ export function RepoTabs() {
               return (
                 <div
                   key={repoId}
-                  className={`flex h-10 min-w-[160px] flex-shrink-0 items-center rounded-t border ${
+                  className={`flex h-10 min-w-[160px] flex-shrink-0 items-center rounded-t border border-b-0 ${
                     isActive
                       ? 'border-blue-200 bg-blue-50 text-blue-700'
                       : 'border-transparent bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
