@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type { RecordDetailPayload } from '@/types/dashboard';
 
 type ImportRecordModalProps = {
@@ -13,6 +13,149 @@ type ValidationResult =
   | { ok: true; data: RecordDetailPayload }
   | { ok: false; error: string };
 
+const recordImportJsonSchema = `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["source", "source_tokens", "target_tokens"],
+  "properties": {
+    "id": { "type": "integer" },
+    "source": { "type": "string", "minLength": 1 },
+    "target": { "type": ["string", "null"] },
+    "meta": { "type": ["string", "null"] },
+    "source_tokens": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/token" }
+    },
+    "target_tokens": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/token" }
+    },
+    "alignment": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/alignment" }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "token": {
+      "type": "object",
+      "required": ["id", "word"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "word": { "type": "string", "minLength": 1 },
+        "pos": { "type": ["string", "null"] },
+        "syntax_role": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "alignment": {
+      "type": "object",
+      "required": ["source_id", "target_id", "relation_type"],
+      "properties": {
+        "source_id": { "type": "integer", "minimum": 1 },
+        "target_id": { "type": "integer", "minimum": 1 },
+        "relation_type": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}`;
+
+const recordImportPrompt = `请根据以下要求生成严格符合 JSON Schema 的文言文-白话文对译数据：
+1. 输出格式必须是单个 JSON 对象，不包含额外说明文字。
+2. 字段要求：
+   - source：文言原文全文（字符串，必填）。
+   - target：对应的白话文译文（字符串，可为空但建议填写）。
+   - meta：出处或备注（字符串，可为空）。
+   - source_tokens：按原文顺序的字词分词数组，每项包含 id(从1开始递增整数)、word(字符串)、pos(词性，可为 null)、syntax_role(句法角色，可为 null)。
+   - target_tokens：按译文顺序的字词分词数组，字段同上。
+   - alignment：数组，描述 source_tokens 与 target_tokens 的对应关系，每项包含 source_id、target_id、relation_type（字符串说明关系）。
+3. source_tokens 拼接后的内容必须与 source 完全一致；target_tokens 拼接后需与 target 完全一致（忽略空 target 的情况）。
+4. 确保 source_id、target_id 均引用各自 token 列表中存在的 id。
+5. 推荐取值：pos 可选“名词”“动词”“形容词”“副词”“代词”“数词”“量词”“连词”“介词”“助词”“叹词”“拟声词”“其他”；syntax_role 可选“主语”“谓语”“宾语”“定语”“状语”“补语”“并列”“引用”“其他”；relation_type 可选“语义”“字面”“语法”“其他”。标点符号建议单独成词，但不设置词性、句法角色或对齐关系。
+示例：
+{
+  "id": 8,
+  "source": "子曰：“不舍昼夜。”",
+  "target": "孔子说：“日夜不停”。",
+  "meta": "论语·子罕",
+  "source_tokens": [
+    { "id": 1, "word": "子", "pos": null, "syntax_role": null },
+    { "id": 2, "word": "曰", "pos": null, "syntax_role": null },
+    { "id": 3, "word": "：“", "pos": null, "syntax_role": null },
+    { "id": 4, "word": "不", "pos": null, "syntax_role": null },
+    { "id": 5, "word": "舍", "pos": null, "syntax_role": null },
+    { "id": 6, "word": "昼夜", "pos": null, "syntax_role": null },
+    { "id": 7, "word": "。”", "pos": null, "syntax_role": null }
+  ],
+  "target_tokens": [
+    { "id": 1, "word": "孔子", "pos": null, "syntax_role": null },
+    { "id": 2, "word": "说", "pos": null, "syntax_role": null },
+    { "id": 3, "word": "：“", "pos": null, "syntax_role": null },
+    { "id": 4, "word": "日夜", "pos": null, "syntax_role": null },
+    { "id": 5, "word": "不", "pos": null, "syntax_role": null },
+    { "id": 6, "word": "停", "pos": null, "syntax_role": null },
+    { "id": 7, "word": "”。", "pos": null, "syntax_role": null }
+  ],
+  "alignment": [
+    { "source_id": 1, "target_id": 1, "relation_type": "其他" },
+    { "source_id": 2, "target_id": 2, "relation_type": "语义" },
+    { "source_id": 6, "target_id": 4, "relation_type": "语义" },
+    { "source_id": 4, "target_id": 5, "relation_type": "语义" },
+    { "source_id": 5, "target_id": 6, "relation_type": "语义" }
+  ]
+}
+请生成如下内容：`;
+
+type TimerHandleRef = { current: number | null };
+
+const clearTimer = (ref: TimerHandleRef) => {
+  if (ref.current) {
+    window.clearTimeout(ref.current);
+    ref.current = null;
+  }
+};
+
+const triggerCopyFeedback = (
+  setState: (value: 'idle' | 'success') => void,
+  ref: TimerHandleRef,
+) => {
+  clearTimer(ref);
+  setState('success');
+  ref.current = window.setTimeout(() => {
+    setState('idle');
+    ref.current = null;
+  }, 1200);
+};
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    console.error('复制失败，尝试回退方案', error);
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  let successful = false;
+  try {
+    successful = document.execCommand('copy');
+  } catch (execError) {
+    console.error('document.execCommand copy 失败', execError);
+  }
+
+  document.body.removeChild(textarea);
+  return successful;
+}
 
 function validatePayload(raw: string): ValidationResult {
   if (!raw.trim()) {
@@ -170,8 +313,16 @@ export function ImportRecordModal({
     error: '请输入 JSON 数据。',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!open) return null;
+  const [schemaExpanded, setSchemaExpanded] = useState(false);
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [schemaCopyState, setSchemaCopyState] = useState<'idle' | 'success'>(
+    'idle',
+  );
+  const [promptCopyState, setPromptCopyState] = useState<'idle' | 'success'>(
+    'idle',
+  );
+  const schemaCopyTimerRef = useRef<number | null>(null);
+  const promptCopyTimerRef = useRef<number | null>(null);
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     if (isSubmitting) return;
@@ -199,6 +350,35 @@ export function ImportRecordModal({
     }
   };
 
+  const handleCopySchema = async () => {
+    const success = await copyText(recordImportJsonSchema);
+    if (success) {
+      triggerCopyFeedback(setSchemaCopyState, schemaCopyTimerRef);
+    } else {
+      window.alert('复制失败，请手动选择内容复制。');
+    }
+  };
+
+  const handleCopyPrompt = async () => {
+    const success = await copyText(recordImportPrompt);
+    if (success) {
+      triggerCopyFeedback(setPromptCopyState, promptCopyTimerRef);
+    } else {
+      window.alert('复制失败，请手动选择内容复制。');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimer(schemaCopyTimerRef);
+      clearTimer(promptCopyTimerRef);
+    };
+  }, []);
+
+  if (!open) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
@@ -224,6 +404,72 @@ export function ImportRecordModal({
             </code>
             ）。成功提交后会在当前资料库中创建全新的条目并自动加载。
           </p>
+          <div className="space-y-2">
+            <div className="overflow-hidden rounded border border-neutral-200">
+              <div className="flex items-center justify-between bg-neutral-50 px-3 py-2">
+                <span className="text-sm font-medium text-neutral-700">
+                  JSON Schema
+                </span>
+                <div className="flex items-center gap-2">
+                  {schemaCopyState === 'success' ? (
+                    <span className="text-xs text-green-600">已复制</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void handleCopySchema()}
+                    className="rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-100"
+                  >
+                    复制
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSchemaExpanded((expanded) => !expanded)}
+                    className="rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-100"
+                    aria-expanded={schemaExpanded}
+                  >
+                    {schemaExpanded ? '收起' : '展开'}
+                  </button>
+                </div>
+              </div>
+              {schemaExpanded ? (
+                <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap bg-white px-3 py-2 text-xs leading-relaxed text-neutral-700">
+                  {recordImportJsonSchema}
+                </pre>
+              ) : null}
+            </div>
+            <div className="overflow-hidden rounded border border-neutral-200">
+              <div className="flex items-center justify-between bg-neutral-50 px-3 py-2">
+                <span className="text-sm font-medium text-neutral-700">
+                  大语言模型提示词
+                </span>
+                <div className="flex items-center gap-2">
+                  {promptCopyState === 'success' ? (
+                    <span className="text-xs text-green-600">已复制</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void handleCopyPrompt()}
+                    className="rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-100"
+                  >
+                    复制
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPromptExpanded((expanded) => !expanded)}
+                    className="rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-100"
+                    aria-expanded={promptExpanded}
+                  >
+                    {promptExpanded ? '收起' : '展开'}
+                  </button>
+                </div>
+              </div>
+              {promptExpanded ? (
+                <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap bg-white px-3 py-2 text-xs leading-relaxed text-neutral-700">
+                  {recordImportPrompt}
+                </pre>
+              ) : null}
+            </div>
+          </div>
           <textarea
             value={inputValue}
             onChange={handleChange}
