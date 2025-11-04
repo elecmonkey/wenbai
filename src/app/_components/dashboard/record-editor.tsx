@@ -64,9 +64,46 @@ export function RecordEditor() {
   const [sourceTokens, setSourceTokens] = useState<Token[]>([]);
   const [targetTokens, setTargetTokens] = useState<Token[]>([]);
   const [alignment, setAlignment] = useState<Alignment[]>([]);
+  const [copySourceFeedback, setCopySourceFeedback] = useState<'idle' | 'success'>('idle');
+  const [copyTargetFeedback, setCopyTargetFeedback] = useState<'idle' | 'success'>('idle');
 
   const lastLoadedRecordId = useRef<number | null>(null);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const copySourceTimerRef = useRef<number | null>(null);
+  const copyTargetTimerRef = useRef<number | null>(null);
+
+  const showCopySourceSuccess = useCallback(() => {
+    if (copySourceTimerRef.current) {
+      window.clearTimeout(copySourceTimerRef.current);
+    }
+    setCopySourceFeedback('success');
+    copySourceTimerRef.current = window.setTimeout(() => {
+      setCopySourceFeedback('idle');
+      copySourceTimerRef.current = null;
+    }, 600);
+  }, []);
+
+  const showCopyTargetSuccess = useCallback(() => {
+    if (copyTargetTimerRef.current) {
+      window.clearTimeout(copyTargetTimerRef.current);
+    }
+    setCopyTargetFeedback('success');
+    copyTargetTimerRef.current = window.setTimeout(() => {
+      setCopyTargetFeedback('idle');
+      copyTargetTimerRef.current = null;
+    }, 600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copySourceTimerRef.current) {
+        window.clearTimeout(copySourceTimerRef.current);
+      }
+      if (copyTargetTimerRef.current) {
+        window.clearTimeout(copyTargetTimerRef.current);
+      }
+    };
+  }, []);
 
   const applyRecordData = useCallback(
     (detail: RecordDetailPayload | null) => {
@@ -371,9 +408,29 @@ export function RecordEditor() {
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="space-y-6 text-sm">
           <section className="space-y-2">
-            <label className="block text-xs uppercase tracking-wide text-neutral-500">
-              文言原文
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wide text-neutral-500">
+                文言原文
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const plain = stripSlashes(sourceValue).trim();
+                  if (!plain) return;
+                  void navigator.clipboard
+                    .writeText(plain)
+                    .then(() => {
+                      showCopySourceSuccess();
+                    })
+                    .catch((error) => {
+                      console.error('复制文言原文失败', error);
+                    });
+                }}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                {copySourceFeedback === 'success' ? '复制成功' : '复制原文'}
+              </button>
+            </div>
             <textarea
               value={sourceValue}
               readOnly={!isAuthenticated}
@@ -404,9 +461,29 @@ export function RecordEditor() {
           </section>
 
           <section className="space-y-2">
-            <label className="block text-xs uppercase tracking-wide text-neutral-500">
-              白话译文
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wide text-neutral-500">
+                白话译文
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const plain = stripSlashes(targetValue).trim();
+                  if (!plain) return;
+                  void navigator.clipboard
+                    .writeText(plain)
+                    .then(() => {
+                      showCopyTargetSuccess();
+                    })
+                    .catch((error) => {
+                      console.error('复制白话译文失败', error);
+                    });
+                }}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                {copyTargetFeedback === 'success' ? '复制成功' : '复制译文'}
+              </button>
+            </div>
             <textarea
               value={targetValue}
               readOnly={!isAuthenticated}
