@@ -12,7 +12,10 @@
     "prisma:db-push": "prisma db push",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "create-user": "tsx scripts/create-user.ts"
+    "create-user": "tsx scripts/create-user.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
@@ -39,6 +42,7 @@
     "prisma": "^6.18.0",
     "tailwindcss": "^4.1.16",
     "tsx": "^4.19.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitepress": "2.0.0-alpha.12"
   }
 }
