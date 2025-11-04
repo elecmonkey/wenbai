@@ -112,6 +112,7 @@ export function RecordEditor() {
     }, 600);
   }, []);
 
+
   useEffect(() => {
     return () => {
       if (copySourceTimerRef.current) {
@@ -403,53 +404,53 @@ export function RecordEditor() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 text-sm">
-        <DisabledHintButton
-          onClick={handleSave}
-          disabled={!recordDirty || updateRecord.isPending || !isAuthenticated}
-          disabledHint={!isAuthenticated ? '请登录后保存修改' : undefined}
-          className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
-        >
-          保存
-        </DisabledHintButton>
-        <DisabledHintButton
-          onClick={handleReset}
-          disabled={!recordDirty || !isAuthenticated}
-          disabledHint={!isAuthenticated ? '请登录后撤销修改' : undefined}
-          className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-        >
-          撤销更改
-        </DisabledHintButton>
-        <DisabledHintButton
-          onClick={() => {
-            void recordQuery.refetch();
-          }}
-          disabled={recordDirty || recordSaving || refreshing}
-          disabledHint={
-            recordDirty || recordSaving
-              ? '请先保存或撤销当前更改后再刷新'
-              : undefined
-          }
-          className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-          containerClassName="inline-flex"
-        >
-          <span className="inline-flex h-7 w-full items-center justify-center">
-            {refreshing ? (
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
-            ) : (
-              '刷新'
-            )}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 text-sm">
+          <DisabledHintButton
+            onClick={handleSave}
+            disabled={!recordDirty || updateRecord.isPending || !isAuthenticated}
+            disabledHint={!isAuthenticated ? '请登录后保存修改' : undefined}
+            className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+          >
+            保存
+          </DisabledHintButton>
+          <DisabledHintButton
+            onClick={handleReset}
+            disabled={!recordDirty || !isAuthenticated}
+            disabledHint={!isAuthenticated ? '请登录后撤销修改' : undefined}
+            className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+          >
+            撤销更改
+          </DisabledHintButton>
+          <DisabledHintButton
+            onClick={() => {
+              void recordQuery.refetch();
+            }}
+            disabled={recordDirty || recordSaving || refreshing}
+            disabledHint={
+              recordDirty || recordSaving
+                ? '请先保存或撤销当前更改后再刷新'
+                : undefined
+            }
+            className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            containerClassName="inline-flex"
+          >
+            <span className="inline-flex h-7 w-full items-center justify-center">
+              {refreshing ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
+              ) : (
+                '刷新'
+              )}
+            </span>
+          </DisabledHintButton>
+          <span className="ml-auto text-xs text-neutral-500">
+            当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
           </span>
-        </DisabledHintButton>
-        <span className="ml-auto text-xs text-neutral-500">
-          当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
-        </span>
-      </div>
+        </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="space-y-6 text-sm">
-          <section className="space-y-2">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-6 text-sm">
+            <section className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-xs uppercase tracking-wide text-neutral-500">
                 文言原文
@@ -597,39 +598,39 @@ export function RecordEditor() {
             />
           </section>
 
-          <section className="pb-12">
-            <TokenAlignmentEditor
-              sourceTokens={sourceTokens}
-              targetTokens={targetTokens}
-              alignment={alignment}
-              readOnly={!isAuthenticated}
-              onUpdateSourceToken={(index, token) => {
-                if (!isAuthenticated) return;
-                setSourceTokens((prev) => {
-                  const next = [...prev];
-                  next[index] = token;
-                  return next;
-                });
-                setRecordDirty(true);
-              }}
-              onUpdateTargetToken={(index, token) => {
-                if (!isAuthenticated) return;
-                setTargetTokens((prev) => {
-                  const next = [...prev];
-                  next[index] = token;
-                  return next;
-                });
-                setRecordDirty(true);
-              }}
-              onAlignmentChange={(nextAlignment) => {
-                if (!isAuthenticated) return;
-                setAlignment(nextAlignment);
-                setRecordDirty(true);
-              }}
-            />
-          </section>
+            <section className="pb-12">
+              <TokenAlignmentEditor
+                sourceTokens={sourceTokens}
+                targetTokens={targetTokens}
+                alignment={alignment}
+                readOnly={!isAuthenticated}
+                onUpdateSourceToken={(index, token) => {
+                  if (!isAuthenticated) return;
+                  setSourceTokens((prev) => {
+                    const next = [...prev];
+                    next[index] = token;
+                    return next;
+                  });
+                  setRecordDirty(true);
+                }}
+                onUpdateTargetToken={(index, token) => {
+                  if (!isAuthenticated) return;
+                  setTargetTokens((prev) => {
+                    const next = [...prev];
+                    next[index] = token;
+                    return next;
+                  });
+                  setRecordDirty(true);
+                }}
+                onAlignmentChange={(nextAlignment) => {
+                  if (!isAuthenticated) return;
+                  setAlignment(nextAlignment);
+                  setRecordDirty(true);
+                }}
+              />
+            </section>
+          </div>
         </div>
       </div>
-    </div>
   );
 }
