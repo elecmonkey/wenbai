@@ -68,11 +68,13 @@ export function RecordEditor() {
   const [alignment, setAlignment] = useState<Alignment[]>([]);
   const [copySourceFeedback, setCopySourceFeedback] = useState<'idle' | 'success'>('idle');
   const [copyTargetFeedback, setCopyTargetFeedback] = useState<'idle' | 'success'>('idle');
+  const [copyMetaFeedback, setCopyMetaFeedback] = useState<'idle' | 'success'>('idle');
 
   const lastLoadedRecordId = useRef<number | null>(null);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const copySourceTimerRef = useRef<number | null>(null);
   const copyTargetTimerRef = useRef<number | null>(null);
+  const copyMetaTimerRef = useRef<number | null>(null);
   const refreshing =
     recordQuery.isRefetching ||
     (recordQuery.isFetching && !recordQuery.isLoading);
@@ -99,6 +101,17 @@ export function RecordEditor() {
     }, 600);
   }, []);
 
+  const showCopyMetaSuccess = useCallback(() => {
+    if (copyMetaTimerRef.current) {
+      window.clearTimeout(copyMetaTimerRef.current);
+    }
+    setCopyMetaFeedback('success');
+    copyMetaTimerRef.current = window.setTimeout(() => {
+      setCopyMetaFeedback('idle');
+      copyMetaTimerRef.current = null;
+    }, 600);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (copySourceTimerRef.current) {
@@ -106,6 +119,9 @@ export function RecordEditor() {
       }
       if (copyTargetTimerRef.current) {
         window.clearTimeout(copyTargetTimerRef.current);
+      }
+      if (copyMetaTimerRef.current) {
+        window.clearTimeout(copyMetaTimerRef.current);
       }
     };
   }, []);
@@ -540,9 +556,29 @@ export function RecordEditor() {
           </section>
 
           <section className="space-y-2">
-            <label className="block text-xs uppercase tracking-wide text-neutral-500">
-              元信息
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wide text-neutral-500">
+                元信息
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const plain = metaValue.trim();
+                  if (!plain) return;
+                  void navigator.clipboard
+                    .writeText(plain)
+                    .then(() => {
+                      showCopyMetaSuccess();
+                    })
+                    .catch((error) => {
+                      console.error('复制元信息失败', error);
+                    });
+                }}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                {copyMetaFeedback === 'success' ? '复制成功' : '复制信息'}
+              </button>
+            </div>
             <input
               value={metaValue}
               readOnly={!isAuthenticated}
