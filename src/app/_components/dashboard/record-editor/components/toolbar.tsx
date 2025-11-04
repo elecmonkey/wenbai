@@ -1,4 +1,7 @@
 import { DisabledHintButton } from '../../disabled-hint-button';
+import { IconRefresh } from '../../../icons/icon-refresh';
+import { IconUndo } from '../../../icons/icon-undo';
+import { IconSave } from '../../../icons/icon-save';
 
 export type RecordEditorToolbarProps = {
   onSave: () => void;
@@ -29,32 +32,33 @@ export function RecordEditorToolbar({
         onClick={onSave}
         disabled={!canSave}
         disabledHint={!isAuthenticated ? '请登录后保存修改' : undefined}
-        className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+        className="flex h-8 w-8 items-center justify-center rounded border border-transparent bg-emerald-500 text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-neutral-200 disabled:text-neutral-400"
+        aria-label="保存修改"
       >
-        保存
+        <IconSave />
       </DisabledHintButton>
       <DisabledHintButton
         onClick={onReset}
         disabled={!canReset}
         disabledHint={!isAuthenticated ? '请登录后撤销修改' : undefined}
-        className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+        className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+        aria-label="撤销更改"
       >
-        撤销更改
+        <IconUndo />
       </DisabledHintButton>
       <DisabledHintButton
         onClick={onRefresh}
         disabled={!canRefresh}
         disabledHint={canRefresh ? undefined : '请先保存或撤销当前更改后再刷新'}
-        className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+        className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
         containerClassName="inline-flex"
+        aria-label="刷新条目详情"
       >
-        <span className="inline-flex h-7 w-full items-center justify-center">
-          {refreshing ? (
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
-          ) : (
-            '刷新'
-          )}
-        </span>
+        {refreshing ? (
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
+        ) : (
+          <IconRefresh />
+        )}
       </DisabledHintButton>
       <span className="ml-auto text-xs text-neutral-500">
         当前条目：{currentTitle || '未命名'}

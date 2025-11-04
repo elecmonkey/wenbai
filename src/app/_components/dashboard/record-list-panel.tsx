@@ -14,6 +14,8 @@ import { useAuthStore } from '@/app/_stores/auth-store';
 import { SaveStatusIndicator } from './save-status-indicator';
 import { DisabledHintButton } from './disabled-hint-button';
 import { ImportRecordModal } from './import/import-record-modal';
+import { IconRefresh } from '../icons/icon-refresh';
+import { IconImport } from '../icons/icon-import';
 import type { RecordDetailPayload } from '@/types/dashboard';
 
 export function RecordListPanel() {
@@ -375,9 +377,10 @@ export function RecordListPanel() {
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="rounded border border-neutral-300 px-2 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            className="flex h-7 w-7 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            aria-label="刷新条目列表"
           >
-            刷新
+            <IconRefresh />
           </button>
           <DisabledHintButton
             onClick={() => {
@@ -386,9 +389,10 @@ export function RecordListPanel() {
             }}
             disabled={importInFlight || !isAuthenticated || !activeRepoId}
             disabledHint={importInFlight ? '正在导入，请稍候' : importDisabledHint}
-            className="rounded border border-neutral-300 px-2 py-1 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            className="flex h-7 w-7 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            aria-label="导入条目"
           >
-            导入
+            <IconImport />
           </DisabledHintButton>
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-2 text-sm">

@@ -12,6 +12,7 @@ import {
 } from '@/app/_queries/repos';
 import { ApiError } from '@/lib/api-client';
 import { DisabledHintButton } from './disabled-hint-button';
+import { IconRefresh } from '../icons/icon-refresh';
 
 export function RepoSidebar() {
   const {
@@ -238,15 +239,15 @@ export function RepoSidebar() {
         </h1>
         <div className="flex items-center gap-2">
           <button
-          onClick={() => {
-            void refetchRepos();
-          }}
-          disabled={isLoading || isFetching}
-          className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-2xl text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-          aria-label="刷新资料库列表"
-        >
-          ⟳
-        </button>
+            onClick={() => {
+              void refetchRepos();
+            }}
+            disabled={isLoading || isFetching}
+            className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+            aria-label="刷新资料库列表"
+          >
+            <IconRefresh />
+          </button>
         <DisabledHintButton
           onClick={handleCreateRepo}
           disabled={createRepo.isPending || !isAuthenticated}
