@@ -9,39 +9,15 @@ import {
 } from '@/app/_queries/records';
 import { ApiError } from '@/lib/api-client';
 import type { Alignment, RecordDetailPayload, Token } from '@/types/dashboard';
-import { TokenAlignmentEditor } from './token-alignment-editor';
-import { DisabledHintButton } from './disabled-hint-button';
-
-const joinTokensWithSlash = (tokens: Token[] | undefined, fallback: string) => {
-  if (tokens && tokens.length > 0) {
-    return tokens
-      .map((token) => (typeof token.word === 'string' ? token.word : ''))
-      .filter(Boolean)
-      .join('/');
-  }
-  return fallback ?? '';
-};
-
-const normalizeWords = (raw: string) =>
-  raw
-    .split('/')
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-
-const buildTokensFromValue = (value: string, previous: Token[]) => {
-  const words = normalizeWords(value);
-  return words.map((word, index) => {
-    const prev = previous[index];
-    return {
-      id: index + 1,
-      word,
-      pos: prev?.pos ?? null,
-      syntax_role: prev?.syntax_role ?? null,
-    };
-  });
-};
-
-const stripSlashes = (value: string) => value.replaceAll('/', '');
+import { TokenAlignmentEditor } from '../token-alignment/token-alignment-editor';
+import { RecordEditorToolbar } from './components/toolbar';
+import { RecordEditorTextSection } from './components/text-section';
+import { RecordEditorMetaField } from './components/meta-field';
+import {
+  buildTokensFromValue,
+  joinTokensWithSlash,
+  stripSlashes,
+} from './utils';
 
 export function RecordEditor() {
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
@@ -188,14 +164,14 @@ export function RecordEditor() {
     setRecordSaving(updateRecord.isPending);
   }, [setRecordSaving, updateRecord.isPending]);
 
-  const setDirty = () => {
+  const markDirty = useCallback(() => {
     if (!isAuthenticated) {
       return;
     }
     if (!recordDirty) {
       setRecordDirty(true);
     }
-  };
+  }, [isAuthenticated, recordDirty, setRecordDirty]);
 
   const disabledReason = useMemo(() => {
     if (!activeRepoId) {
@@ -339,6 +315,129 @@ export function RecordEditor() {
     applyRecordData(recordQuery.data ?? null);
   };
 
+  const handleRefresh = () => {
+    void recordQuery.refetch();
+  };
+
+  const handleSourceChange = useCallback(
+    (nextValue: string) => {
+      if (!isAuthenticated) return;
+      setSourceValue(nextValue);
+      setSourceTokens((prevTokens) => {
+        const nextTokens = buildTokensFromValue(nextValue, prevTokens);
+        setAlignment((prevAlignment) =>
+          prevAlignment.filter((item) =>
+            nextTokens.some((token) => token.id === item.source_id),
+          ),
+        );
+        return nextTokens;
+      });
+      markDirty();
+    },
+    [isAuthenticated, markDirty, setAlignment],
+  );
+
+  const handleTargetChange = useCallback(
+    (nextValue: string) => {
+      if (!isAuthenticated) return;
+      setTargetValue(nextValue);
+      setTargetTokens((prevTokens) => {
+        const nextTokens = buildTokensFromValue(nextValue, prevTokens);
+        setAlignment((prevAlignment) =>
+          prevAlignment.filter((item) =>
+            nextTokens.some((token) => token.id === item.target_id),
+          ),
+        );
+        return nextTokens;
+      });
+      markDirty();
+    },
+    [isAuthenticated, markDirty, setAlignment],
+  );
+
+  const handleMetaChange = useCallback(
+    (nextValue: string) => {
+      if (!isAuthenticated) return;
+      setMetaValue(nextValue);
+      markDirty();
+    },
+    [isAuthenticated, markDirty],
+  );
+
+  const handleCopySource = useCallback(() => {
+    const plain = stripSlashes(sourceValue).trim();
+    if (!plain) return;
+    void navigator.clipboard
+      .writeText(plain)
+      .then(() => {
+        showCopySourceSuccess();
+      })
+      .catch((error) => {
+        console.error('复制文言原文失败', error);
+      });
+  }, [showCopySourceSuccess, sourceValue]);
+
+  const handleCopyTarget = useCallback(() => {
+    const plain = stripSlashes(targetValue).trim();
+    if (!plain) return;
+    void navigator.clipboard
+      .writeText(plain)
+      .then(() => {
+        showCopyTargetSuccess();
+      })
+      .catch((error) => {
+        console.error('复制白话译文失败', error);
+      });
+  }, [showCopyTargetSuccess, targetValue]);
+
+  const handleCopyMeta = useCallback(() => {
+    const plain = metaValue.trim();
+    if (!plain) return;
+    void navigator.clipboard
+      .writeText(plain)
+      .then(() => {
+        showCopyMetaSuccess();
+      })
+      .catch((error) => {
+        console.error('复制元信息失败', error);
+      });
+  }, [metaValue, showCopyMetaSuccess]);
+
+  const handleUpdateSourceToken = useCallback(
+    (index: number, token: Token) => {
+      if (!isAuthenticated) return;
+      setSourceTokens((prev) => {
+        const next = [...prev];
+        next[index] = token;
+        return next;
+      });
+      markDirty();
+    },
+    [isAuthenticated, markDirty],
+  );
+
+  const handleUpdateTargetToken = useCallback(
+    (index: number, token: Token) => {
+      if (!isAuthenticated) return;
+      setTargetTokens((prev) => {
+        const next = [...prev];
+        next[index] = token;
+        return next;
+      });
+      markDirty();
+    },
+    [isAuthenticated, markDirty],
+  );
+
+  const handleAlignmentChange = useCallback(
+    (nextAlignment: Alignment[]) => {
+      if (!isAuthenticated) return;
+      setAlignment(nextAlignment);
+      markDirty();
+    },
+    [isAuthenticated, markDirty],
+  );
+
   useEffect(() => {
     registerSaveHandler(() => performSave());
     return () => {
@@ -366,6 +465,12 @@ export function RecordEditor() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [performSave]);
+
+  const readOnly = !isAuthenticated;
+  const currentTitle = stripSlashes(sourceValue).trim();
+  const canSave = recordDirty && !updateRecord.isPending && isAuthenticated;
+  const canReset = recordDirty && isAuthenticated;
+  const canRefresh = !recordDirty && !recordSaving && !refreshing;
 
   if (disabledReason) {
     return (
@@ -404,233 +509,64 @@ export function RecordEditor() {
   }
 
   return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 text-sm">
-          <DisabledHintButton
-            onClick={handleSave}
-            disabled={!recordDirty || updateRecord.isPending || !isAuthenticated}
-            disabledHint={!isAuthenticated ? '请登录后保存修改' : undefined}
-            className="rounded bg-emerald-500 px-3 py-1 font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
-          >
-            保存
-          </DisabledHintButton>
-          <DisabledHintButton
-            onClick={handleReset}
-            disabled={!recordDirty || !isAuthenticated}
-            disabledHint={!isAuthenticated ? '请登录后撤销修改' : undefined}
-            className="rounded border border-neutral-300 px-3 py-1 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-          >
-            撤销更改
-          </DisabledHintButton>
-          <DisabledHintButton
-            onClick={() => {
-              void recordQuery.refetch();
-            }}
-            disabled={recordDirty || recordSaving || refreshing}
-            disabledHint={
-              recordDirty || recordSaving
-                ? '请先保存或撤销当前更改后再刷新'
-                : undefined
-            }
-            className="flex w-15 items-center justify-center rounded border border-neutral-300 px-3 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-            containerClassName="inline-flex"
-          >
-            <span className="inline-flex h-7 w-full items-center justify-center">
-              {refreshing ? (
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" />
-              ) : (
-                '刷新'
-              )}
-            </span>
-          </DisabledHintButton>
-          <span className="ml-auto text-xs text-neutral-500">
-            当前条目：{sourceValue ? stripSlashes(sourceValue) : '未命名'}
-          </span>
-        </div>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <RecordEditorToolbar
+        onSave={handleSave}
+        onReset={handleReset}
+        onRefresh={handleRefresh}
+        canSave={canSave}
+        canReset={canReset}
+        canRefresh={canRefresh}
+        refreshing={refreshing}
+        isAuthenticated={isAuthenticated}
+        currentTitle={currentTitle}
+      />
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="space-y-6 text-sm">
-            <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wide text-neutral-500">
-                文言原文
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const plain = stripSlashes(sourceValue).trim();
-                  if (!plain) return;
-                  void navigator.clipboard
-                    .writeText(plain)
-                    .then(() => {
-                      showCopySourceSuccess();
-                    })
-                    .catch((error) => {
-                      console.error('复制文言原文失败', error);
-                    });
-                }}
-                className="text-xs text-blue-500 hover:text-blue-600"
-              >
-                {copySourceFeedback === 'success' ? '复制成功' : '复制原文'}
-              </button>
-            </div>
-            <textarea
-              value={sourceValue}
-              readOnly={!isAuthenticated}
-              onFocus={(event) => {
-                if (!isAuthenticated) {
-                  event.currentTarget.blur();
-                }
-              }}
-              onChange={(event) => {
-                if (!isAuthenticated) return;
-                const nextValue = event.target.value;
-                setSourceValue(nextValue);
-                const nextTokens = buildTokensFromValue(
-                  nextValue,
-                  sourceTokens,
-                );
-                setSourceTokens(nextTokens);
-                setAlignment((prev) =>
-                  prev.filter((item) =>
-                    nextTokens.some((token) => token.id === item.source_id),
-                  ),
-                );
-                setDirty();
-              }}
-              rows={3}
-              className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="space-y-6 text-sm">
+          <RecordEditorTextSection
+            label="文言原文"
+            value={sourceValue}
+            readOnly={readOnly}
+            copyFeedback={copySourceFeedback}
+            copyIdleLabel="复制原文"
+            copySuccessLabel="复制成功"
+            onCopy={handleCopySource}
+            onChange={handleSourceChange}
+          />
+
+          <RecordEditorTextSection
+            label="白话译文"
+            value={targetValue}
+            readOnly={readOnly}
+            copyFeedback={copyTargetFeedback}
+            copyIdleLabel="复制译文"
+            copySuccessLabel="复制成功"
+            onCopy={handleCopyTarget}
+            onChange={handleTargetChange}
+          />
+
+          <RecordEditorMetaField
+            value={metaValue}
+            readOnly={readOnly}
+            copyFeedback={copyMetaFeedback}
+            onCopy={handleCopyMeta}
+            onChange={handleMetaChange}
+          />
+
+          <section className="pb-12">
+            <TokenAlignmentEditor
+              sourceTokens={sourceTokens}
+              targetTokens={targetTokens}
+              alignment={alignment}
+              readOnly={readOnly}
+              onUpdateSourceToken={handleUpdateSourceToken}
+              onUpdateTargetToken={handleUpdateTargetToken}
+              onAlignmentChange={handleAlignmentChange}
             />
           </section>
-
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wide text-neutral-500">
-                白话译文
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const plain = stripSlashes(targetValue).trim();
-                  if (!plain) return;
-                  void navigator.clipboard
-                    .writeText(plain)
-                    .then(() => {
-                      showCopyTargetSuccess();
-                    })
-                    .catch((error) => {
-                      console.error('复制白话译文失败', error);
-                    });
-                }}
-                className="text-xs text-blue-500 hover:text-blue-600"
-              >
-                {copyTargetFeedback === 'success' ? '复制成功' : '复制译文'}
-              </button>
-            </div>
-            <textarea
-              value={targetValue}
-              readOnly={!isAuthenticated}
-              onFocus={(event) => {
-                if (!isAuthenticated) {
-                  event.currentTarget.blur();
-                }
-              }}
-              onChange={(event) => {
-                if (!isAuthenticated) return;
-                const nextValue = event.target.value;
-                setTargetValue(nextValue);
-                const nextTokens = buildTokensFromValue(
-                  nextValue,
-                  targetTokens,
-                );
-                setTargetTokens(nextTokens);
-                setAlignment((prev) =>
-                  prev.filter((item) =>
-                    nextTokens.some((token) => token.id === item.target_id),
-                  ),
-                );
-                setDirty();
-              }}
-              rows={3}
-              className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            />
-          </section>
-
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wide text-neutral-500">
-                元信息
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const plain = metaValue.trim();
-                  if (!plain) return;
-                  void navigator.clipboard
-                    .writeText(plain)
-                    .then(() => {
-                      showCopyMetaSuccess();
-                    })
-                    .catch((error) => {
-                      console.error('复制元信息失败', error);
-                    });
-                }}
-                className="text-xs text-blue-500 hover:text-blue-600"
-              >
-                {copyMetaFeedback === 'success' ? '复制成功' : '复制信息'}
-              </button>
-            </div>
-            <input
-              value={metaValue}
-              readOnly={!isAuthenticated}
-              onFocus={(event) => {
-                if (!isAuthenticated) {
-                  event.currentTarget.blur();
-                }
-              }}
-              onChange={(event) => {
-                if (!isAuthenticated) return;
-                setMetaValue(event.target.value);
-                setDirty();
-              }}
-              className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              placeholder="如：《论语·学而》"
-            />
-          </section>
-
-            <section className="pb-12">
-              <TokenAlignmentEditor
-                sourceTokens={sourceTokens}
-                targetTokens={targetTokens}
-                alignment={alignment}
-                readOnly={!isAuthenticated}
-                onUpdateSourceToken={(index, token) => {
-                  if (!isAuthenticated) return;
-                  setSourceTokens((prev) => {
-                    const next = [...prev];
-                    next[index] = token;
-                    return next;
-                  });
-                  setRecordDirty(true);
-                }}
-                onUpdateTargetToken={(index, token) => {
-                  if (!isAuthenticated) return;
-                  setTargetTokens((prev) => {
-                    const next = [...prev];
-                    next[index] = token;
-                    return next;
-                  });
-                  setRecordDirty(true);
-                }}
-                onAlignmentChange={(nextAlignment) => {
-                  if (!isAuthenticated) return;
-                  setAlignment(nextAlignment);
-                  setRecordDirty(true);
-                }}
-              />
-            </section>
-          </div>
         </div>
       </div>
+    </div>
   );
 }

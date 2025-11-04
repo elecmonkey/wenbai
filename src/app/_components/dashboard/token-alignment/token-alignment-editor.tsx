@@ -3,36 +3,16 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Alignment, Token } from '@/types/dashboard';
 import { FlexibleOptionInput } from './flexible-option-input';
+import {
+  POS_SUGGESTIONS,
+  RELATION_SUGGESTIONS,
+  SYNTAX_SUGGESTIONS,
+  getTokenId,
+  normalizeRelationValue,
+  normalizeTokenAttribute,
+} from './token-alignment-utils';
 
-const POS_SUGGESTIONS = [
-  '名词',
-  '动词',
-  '形容词',
-  '副词',
-  '代词',
-  '数词',
-  '量词',
-  '连词',
-  '介词',
-  '助词',
-  '叹词',
-  '拟声词',
-];
-
-const SYNTAX_SUGGESTIONS = [
-  '主语',
-  '谓语',
-  '宾语',
-  '定语',
-  '状语',
-  '补语',
-  '并列',
-  '引用',
-];
-
-const RELATION_SUGGESTIONS = ['语义', '字面', '语法'];
-
-type TokenAlignmentEditorProps = {
+export type TokenAlignmentEditorProps = {
   sourceTokens: Token[];
   targetTokens: Token[];
   alignment: Alignment[];
@@ -49,20 +29,6 @@ type LineSegment = {
   x2: number;
   y2: number;
   relation: string;
-};
-
-const getTokenId = (token: Token, index: number) => token.id ?? index + 1;
-
-const normalizeTokenAttribute = (value: string | null) => {
-  if (!value) return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
-
-const normalizeRelationValue = (value: string | null) => {
-  if (!value) return '';
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : '';
 };
 
 export function TokenAlignmentEditor({

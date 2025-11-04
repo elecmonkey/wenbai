@@ -13,7 +13,7 @@ import { ApiError } from '@/lib/api-client';
 import { useAuthStore } from '@/app/_stores/auth-store';
 import { SaveStatusIndicator } from './save-status-indicator';
 import { DisabledHintButton } from './disabled-hint-button';
-import { ImportRecordModal } from './import-record-modal';
+import { ImportRecordModal } from './import/import-record-modal';
 import type { RecordDetailPayload } from '@/types/dashboard';
 
 export function RecordListPanel() {

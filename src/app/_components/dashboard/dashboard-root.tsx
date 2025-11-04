@@ -8,7 +8,7 @@ import { useAuthStore } from '@/app/_stores/auth-store';
 import { RepoSidebar } from './repo-sidebar';
 import { RepoTabs } from './repo-tabs';
 import { RecordListPanel } from './record-list-panel';
-import { RecordEditor } from './record-editor';
+import { RecordEditor } from './record-editor/record-editor';
 import { StatusBar } from './status-bar';
 import { LoginModal } from './login-modal';
 
