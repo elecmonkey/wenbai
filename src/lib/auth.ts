@@ -26,7 +26,7 @@ function isTokenPayload(value: unknown): value is TokenPayload {
   }
   const payload = value as Partial<TokenPayload>;
   return (
-    typeof payload.sub === 'number' &&
+    typeof payload.sub === 'string' &&
     typeof payload.username === 'string'
   );
 }
