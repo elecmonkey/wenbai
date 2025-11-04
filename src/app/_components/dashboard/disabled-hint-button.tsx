@@ -8,6 +8,7 @@ type DisabledHintButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   disabledHint?: string;
   containerClassName?: string;
   children: ReactNode;
+  hintPlacement?: 'top' | 'bottom' | 'left' | 'right';
 };
 
 export function DisabledHintButton({
@@ -16,6 +17,7 @@ export function DisabledHintButton({
   className,
   disabled,
   children,
+  hintPlacement = 'top',
   ...rest
 }: DisabledHintButtonProps) {
   const [visible, setVisible] = useState(false);
@@ -29,11 +31,19 @@ export function DisabledHintButton({
       return;
     }
     const rect = containerRef.current.getBoundingClientRect();
-    setHintPosition({
-      left: rect.left + rect.width / 2,
-      top: rect.top - 8,
-    });
-  }, [shouldShowHint]);
+    let left = rect.left + rect.width / 2;
+    let top = rect.top - 8;
+
+    if (hintPlacement === 'bottom') {
+      top = rect.bottom + 8;
+    } else if (hintPlacement === 'left') {
+      left = rect.left - 8;
+    } else if (hintPlacement === 'right') {
+      left = rect.right + 8;
+    }
+
+    setHintPosition({ left, top });
+  }, [shouldShowHint, hintPlacement]);
 
   const handleMouseEnter = () => {
     if (shouldShowHint) {
@@ -85,7 +95,14 @@ export function DisabledHintButton({
                 position: 'fixed',
                 left: hintPosition.left,
                 top: hintPosition.top,
-                transform: 'translate(-50%, -100%)',
+                transform:
+                  hintPlacement === 'bottom'
+                    ? 'translate(-50%, 0)'
+                    : hintPlacement === 'left'
+                      ? 'translate(-100%, -50%)'
+                      : hintPlacement === 'right'
+                        ? 'translate(0, -50%)'
+                        : 'translate(-50%, -100%)',
                 zIndex: 100000,
                 pointerEvents: 'none',
               }}
