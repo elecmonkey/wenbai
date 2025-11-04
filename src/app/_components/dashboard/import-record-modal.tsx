@@ -74,7 +74,7 @@ const recordImportPrompt = `请根据以下要求生成严格符合 JSON Schema 
    - alignment：数组，描述 source_tokens 与 target_tokens 的对应关系，每项包含 source_id、target_id、relation_type（字符串说明关系）。
 3. source_tokens 拼接后的内容必须与 source 完全一致；target_tokens 拼接后需与 target 完全一致（忽略空 target 的情况）。
 4. 确保 source_id、target_id 均引用各自 token 列表中存在的 id。
-5. 推荐取值：pos 可选“名词”“动词”“形容词”“副词”“代词”“数词”“量词”“连词”“介词”“助词”“叹词”“拟声词”“其他”；syntax_role 可选“主语”“谓语”“宾语”“定语”“状语”“补语”“并列”“引用”“其他”；relation_type 可选“语义”“字面”“语法”“其他”。标点符号建议单独成词，但不设置词性、句法角色或对齐关系。
+5. 推荐取值：pos 可选“名词”“动词”“形容词”“副词”“代词”“数词”“量词”“连词”“介词”“助词”“叹词”“拟声词”；syntax_role 可选“主语”“谓语”“宾语”“定语”“状语”“补语”“并列”“引用”；relation_type 可选“语义”“字面”“语法”。这些值仅作参考，若语料需要可填写其他明确的术语，但请避免为同一语法功能写出意思相同的多种表达。标点符号建议单独成词，但不设置词性、句法角色或对齐关系。
 示例：
 {
   "id": 8,
@@ -100,7 +100,7 @@ const recordImportPrompt = `请根据以下要求生成严格符合 JSON Schema 
     { "id": 7, "word": "”。", "pos": null, "syntax_role": null }
   ],
   "alignment": [
-    { "source_id": 1, "target_id": 1, "relation_type": "其他" },
+    { "source_id": 1, "target_id": 1, "relation_type": "语义" },
     { "source_id": 2, "target_id": 2, "relation_type": "语义" },
     { "source_id": 6, "target_id": 4, "relation_type": "语义" },
     { "source_id": 4, "target_id": 5, "relation_type": "语义" },
@@ -398,11 +398,7 @@ export function ImportRecordModal({
         </div>
         <div className="mt-4 space-y-3 text-sm text-neutral-700">
           <p>
-            粘贴符合数据结构的 JSON（例如{' '}
-            <code className="rounded bg-neutral-100 px-1 py-0.5">
-              {"{\"source\":\"...\",\"target\":\"...\",\"source_tokens\":[...],\"target_tokens\":[...],\"alignment\":[...]}"}
-            </code>
-            ）。成功提交后会在当前资料库中创建全新的条目并自动加载。
+            粘贴符合数据结构的 JSON。成功提交后会在当前资料库中创建全新的条目并自动加载。
           </p>
           <div className="space-y-2">
             <div className="overflow-hidden rounded border border-neutral-200">

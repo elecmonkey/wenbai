@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Alignment, Token } from '@/types/dashboard';
+import { FlexibleOptionInput } from './flexible-option-input';
 
-const POS_OPTIONS = [
-  '-',
+const POS_SUGGESTIONS = [
   '名词',
   '动词',
   '形容词',
@@ -17,11 +17,9 @@ const POS_OPTIONS = [
   '助词',
   '叹词',
   '拟声词',
-  '其他',
 ];
 
-const SYNTAX_OPTIONS = [
-  '-',
+const SYNTAX_SUGGESTIONS = [
   '主语',
   '谓语',
   '宾语',
@@ -30,10 +28,9 @@ const SYNTAX_OPTIONS = [
   '补语',
   '并列',
   '引用',
-  '其他',
 ];
 
-const RELATION_OPTIONS = ['语义', '字面', '语法', '其他'];
+const RELATION_SUGGESTIONS = ['语义', '字面', '语法'];
 
 type TokenAlignmentEditorProps = {
   sourceTokens: Token[];
@@ -54,8 +51,19 @@ type LineSegment = {
   relation: string;
 };
 
-const toSelectValue = (value?: string | null) => (value && value.length > 0 ? value : '-');
 const getTokenId = (token: Token, index: number) => token.id ?? index + 1;
+
+const normalizeTokenAttribute = (value: string | null) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const normalizeRelationValue = (value: string | null) => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : '';
+};
 
 export function TokenAlignmentEditor({
   sourceTokens,
@@ -214,10 +222,11 @@ export function TokenAlignmentEditor({
   );
 
   const handleRelationChange = useCallback(
-    (index: number, value: string) => {
+    (index: number, value: string | null) => {
+      const normalized = normalizeRelationValue(value);
       onAlignmentChange(
         alignment.map((item, idx) =>
-          idx === index ? { ...item, relation_type: value } : item,
+          idx === index ? { ...item, relation_type: normalized } : item,
         ),
       );
     },
@@ -229,67 +238,6 @@ export function TokenAlignmentEditor({
       onAlignmentChange(alignment.filter((_, idx) => idx !== index));
     },
     [alignment, onAlignmentChange],
-  );
-
-  const renderPosSelect = useCallback(
-    (
-      token: Token,
-      index: number,
-      type: 'source' | 'target',
-      onUpdate: (index: number, token: Token) => void,
-      disabled: boolean,
-    ) => (
-      <select
-        value={toSelectValue(token.pos)}
-        onChange={(event) =>
-          disabled
-            ? undefined
-            : onUpdate(index, {
-                ...token,
-                pos: event.target.value === '-' ? null : event.target.value,
-              })
-        }
-        className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
-      >
-        {POS_OPTIONS.map((option) => (
-          <option key={`${type}-pos-${option}`} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    ),
-    [],
-  );
-
-  const renderSyntaxSelect = useCallback(
-    (
-      token: Token,
-      index: number,
-      type: 'source' | 'target',
-      onUpdate: (index: number, token: Token) => void,
-      disabled: boolean,
-    ) => (
-      <select
-        value={toSelectValue(token.syntax_role)}
-        onChange={(event) =>
-          disabled
-            ? undefined
-            : onUpdate(index, {
-                ...token,
-                syntax_role:
-                  event.target.value === '-' ? null : event.target.value,
-              })
-        }
-        className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
-      >
-        {SYNTAX_OPTIONS.map((option) => (
-          <option key={`${type}-syntax-${option}`} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    ),
-    [],
   );
 
   return (
@@ -338,20 +286,34 @@ export function TokenAlignmentEditor({
                   return (
                     <div key={tokenId} className="flex flex-col items-center gap-2">
                       <div className="flex flex-col gap-2">
-                        {renderPosSelect(
-                          token,
-                          index,
-                          'source',
-                          onUpdateSourceToken,
-                          isReadOnly,
-                        )}
-                        {renderSyntaxSelect(
-                          token,
-                          index,
-                          'source',
-                          onUpdateSourceToken,
-                          isReadOnly,
-                        )}
+                        <FlexibleOptionInput
+                          value={token.pos ?? null}
+                          onChange={(nextValue) => {
+                            if (isReadOnly) return;
+                            onUpdateSourceToken(index, {
+                              ...token,
+                              pos: normalizeTokenAttribute(nextValue),
+                            });
+                          }}
+                          options={POS_SUGGESTIONS}
+                          placeholder="词性"
+                          disabled={isReadOnly}
+                          className="w-16"
+                        />
+                        <FlexibleOptionInput
+                          value={token.syntax_role ?? null}
+                          onChange={(nextValue) => {
+                            if (isReadOnly) return;
+                            onUpdateSourceToken(index, {
+                              ...token,
+                              syntax_role: normalizeTokenAttribute(nextValue),
+                            });
+                          }}
+                          options={SYNTAX_SUGGESTIONS}
+                          placeholder="角色"
+                          disabled={isReadOnly}
+                          className="w-16"
+                        />
                       </div>
                       <button
                         ref={(element) => {
@@ -388,20 +350,34 @@ export function TokenAlignmentEditor({
                         {token.word || `词元 ${index + 1}`}
                       </button>
                       <div className="flex flex-col gap-2">
-                        {renderPosSelect(
-                          token,
-                          index,
-                          'target',
-                          onUpdateTargetToken,
-                          isReadOnly,
-                        )}
-                        {renderSyntaxSelect(
-                          token,
-                          index,
-                          'target',
-                          onUpdateTargetToken,
-                          isReadOnly,
-                        )}
+                        <FlexibleOptionInput
+                          value={token.pos ?? null}
+                          onChange={(nextValue) => {
+                            if (isReadOnly) return;
+                            onUpdateTargetToken(index, {
+                              ...token,
+                              pos: normalizeTokenAttribute(nextValue),
+                            });
+                          }}
+                          options={POS_SUGGESTIONS}
+                          placeholder="词性"
+                          disabled={isReadOnly}
+                          className="w-16"
+                        />
+                        <FlexibleOptionInput
+                          value={token.syntax_role ?? null}
+                          onChange={(nextValue) => {
+                            if (isReadOnly) return;
+                            onUpdateTargetToken(index, {
+                              ...token,
+                              syntax_role: normalizeTokenAttribute(nextValue),
+                            });
+                          }}
+                          options={SYNTAX_SUGGESTIONS}
+                          placeholder="角色"
+                          disabled={isReadOnly}
+                          className="w-16"
+                        />
                       </div>
                     </div>
                   );
@@ -448,20 +424,17 @@ export function TokenAlignmentEditor({
                     {targetToken?.word || `词元 ${item.target_id}`}
                   </span>
                 </span>
-                <select
-                  value={item.relation_type ?? '语义'}
-                  onChange={(event) => {
+                <FlexibleOptionInput
+                  value={item.relation_type ?? null}
+                  onChange={(nextValue) => {
                     if (isReadOnly) return;
-                    handleRelationChange(index, event.target.value);
+                    handleRelationChange(index, nextValue);
                   }}
-                  className="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 focus:border-blue-400 focus:outline-none"
-                >
-                  {RELATION_OPTIONS.map((option) => (
-                    <option key={`relation-${option}`} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  options={RELATION_SUGGESTIONS}
+                  placeholder="关系类型"
+                  disabled={isReadOnly}
+                  className="w-16"
+                />
                 {!isReadOnly ? (
                   <button
                     onClick={() => {
