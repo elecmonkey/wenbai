@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { useDashboardStore } from '@/app/_stores/dashboard-store';
 import {
   useCreateRecordMutation,
+  useDeleteRecordMutation,
   useRecordsQuery,
   useUpdateRecordMutation,
 } from '@/app/_queries/records';
@@ -25,6 +27,7 @@ export function RecordListPanel() {
   const recordDirty = useDashboardStore((state) => state.recordDirty);
   const recordSaving = useDashboardStore((state) => state.recordSaving);
   const isAuthenticated = useAuthStore((state) => state.user !== null);
+  const requireAuth = useAuthStore((state) => state.requireAuth);
   const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
   const updateRecord = useUpdateRecordMutation();
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -39,6 +42,17 @@ export function RecordListPanel() {
   } = useRecordsQuery(activeRepoId);
 
   const createRecord = useCreateRecordMutation();
+  const deleteRecord = useDeleteRecordMutation();
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [menuState, setMenuState] = useState<{
+    recordId: number;
+    anchor: { x: number; y: number };
+  } | null>(null);
+
+  const contextRecord = useMemo(
+    () => records.find((record) => record.id === menuState?.recordId) ?? null,
+    [menuState?.recordId, records],
+  );
 
   useEffect(() => {
     if (!activeRepoId || !records.length) {
@@ -60,6 +74,27 @@ export function RecordListPanel() {
       })();
     }
   }, [records, activeRecordId, activeRepoId, setActiveRecordId, requestSave]);
+
+  useEffect(() => {
+    if (!menuState) return;
+
+    const dismiss = () => setMenuState(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuState(null);
+      }
+    };
+
+    window.addEventListener('click', dismiss);
+    window.addEventListener('contextmenu', dismiss);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('click', dismiss);
+      window.removeEventListener('contextmenu', dismiss);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuState]);
 
   const handleCreateRecord = async () => {
     if (!isAuthenticated) {
@@ -118,6 +153,114 @@ export function RecordListPanel() {
 
   const handleRefresh = () => {
     void refetch();
+  };
+
+  const openContextMenu = (
+    event: MouseEvent<HTMLButtonElement>,
+    recordId: number,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const panelRect = panelRef.current?.getBoundingClientRect();
+    const anchor = panelRect
+      ? {
+          x: event.clientX - panelRect.left,
+          y: event.clientY - panelRect.top,
+        }
+      : { x: event.clientX, y: event.clientY };
+    setMenuState({ recordId, anchor });
+  };
+
+  const findFallbackRecord = (recordId: number) => {
+    if (records.length <= 1) {
+      return null;
+    }
+    const index = records.findIndex((record) => record.id === recordId);
+    if (index === -1) {
+      return records[0] ?? null;
+    }
+    return records[index + 1] ?? records[index - 1] ?? null;
+  };
+
+  const performDeleteRecord = async (recordId: number) => {
+    if (!activeRepoId) {
+      return;
+    }
+    const wasActive = recordId === activeRecordId;
+    const fallbackRecord = findFallbackRecord(recordId);
+
+    await deleteRecord.mutateAsync({ repoId: activeRepoId, recordId });
+
+    if (wasActive) {
+      if (fallbackRecord) {
+        setActiveRecordId(fallbackRecord.id);
+      } else {
+        setActiveRecordId(null);
+      }
+    }
+  };
+
+  const showDeleteError = (error: unknown) => {
+    console.error('删除条目失败', error);
+    if (error instanceof ApiError) {
+      window.alert(error.message);
+    } else if (error instanceof Error) {
+      window.alert(error.message);
+    } else {
+      window.alert('删除条目失败，请稍后再试。');
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: number) => {
+    const target = records.find((record) => record.id === recordId);
+    const displayName =
+      target?.source?.trim() && target.source.trim().length > 0
+        ? target.source.trim()
+        : '未命名条目';
+
+    const confirmed = window.confirm(
+      recordId === activeRecordId && recordDirty
+        ? `当前条目存在未保存的更改，删除后将丢失这些内容。确定要删除“${displayName}”吗？`
+        : `确定要删除条目“${displayName}”吗？此操作不可恢复。`,
+    );
+    if (!confirmed) return;
+
+    const deleteAndHandleErrors = async () => {
+      if (!activeRepoId) {
+        window.alert('请先选择一个资料库。');
+        return;
+      }
+      try {
+        await performDeleteRecord(recordId);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          handleUnauthorized(async () => {
+            try {
+              await performDeleteRecord(recordId);
+            } catch (innerError) {
+              showDeleteError(innerError);
+            }
+          });
+          return;
+        }
+        showDeleteError(error);
+      }
+    };
+
+    const authed = await requireAuth(async () => {
+      await deleteAndHandleErrors();
+    });
+
+    if (authed) {
+      return;
+    }
+  };
+
+  const handleDeleteAction = () => {
+    if (!menuState) return;
+    const { recordId } = menuState;
+    setMenuState(null);
+    void handleDeleteRecord(recordId);
   };
 
   const importDisabledHint = !activeRepoId
@@ -216,7 +359,10 @@ export function RecordListPanel() {
 
   return (
     <>
-      <div className="flex w-80 flex-col border-r border-neutral-200 bg-white">
+      <div
+        ref={panelRef}
+        className="relative flex w-80 flex-col border-r border-neutral-200 bg-white"
+      >
         <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3 text-sm">
           <DisabledHintButton
             onClick={handleCreateRecord}
@@ -274,6 +420,7 @@ export function RecordListPanel() {
                         if (!saved) return;
                         setActiveRecordId(record.id);
                       })()}
+                    onContextMenu={(event) => openContextMenu(event, record.id)}
                     className={`flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${
                       record.id === activeRecordId
                         ? 'bg-blue-50 text-blue-700'
@@ -302,6 +449,23 @@ export function RecordListPanel() {
             </ul>
           )}
         </div>
+        {menuState && contextRecord && (
+          <div
+            style={{
+              top: menuState.anchor.y,
+              left: menuState.anchor.x,
+            }}
+            className="absolute z-20 w-36 overflow-hidden rounded border border-neutral-200 bg-white shadow-lg"
+          >
+            <button
+              onClick={handleDeleteAction}
+              disabled={deleteRecord.isPending}
+              className="flex w-full items-center px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+            >
+              删除
+            </button>
+          </div>
+        )}
       </div>
       <ImportRecordModal
         key={importModalKey}

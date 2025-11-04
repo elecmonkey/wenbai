@@ -224,3 +224,71 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: RouteContext,
+) {
+  const { repoId: rawRepoId, recordId: rawRecordId } =
+    await context.params;
+  const repoId = parseId(rawRepoId);
+  const recordId = parseId(rawRecordId);
+
+  if (!repoId || !recordId) {
+    return NextResponse.json(
+      { message: "error", error: "Invalid identifier" },
+      { status: 400 },
+    );
+  }
+
+  const user = await getAuthUser(request);
+  if (!user) {
+    return NextResponse.json(
+      { message: "error", error: "未授权，请先登录" },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const record = await prisma.record.findFirst({
+      where: { id: recordId, repoId },
+      cacheStrategy: { ttl: 0 },
+      select: { id: true },
+    });
+
+    if (!record) {
+      return NextResponse.json(
+        { message: "error", error: "Record not found" },
+        { status: 404 },
+      );
+    }
+
+    await prisma.record.delete({
+      where: { id: recordId },
+    });
+
+    return NextResponse.json({
+      message: "success",
+      data: { id: recordId },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json(
+        { message: "error", error: "Record not found" },
+        { status: 404 },
+      );
+    }
+
+    console.error(
+      `DELETE /api/repos/${repoId}/records/${recordId} failed`,
+      error,
+    );
+    return NextResponse.json(
+      { message: "error", error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}

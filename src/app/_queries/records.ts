@@ -94,3 +94,23 @@ export function useUpdateRecordMutation() {
     },
   });
 }
+
+export function useDeleteRecordMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { repoId: number; recordId: number }) =>
+      apiRequest<void>(
+        `/api/repos/${payload.repoId}/records/${payload.recordId}`,
+        { method: 'DELETE' },
+      ),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: recordsKey(variables.repoId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: recordDetailKey(variables.repoId, variables.recordId),
+      });
+    },
+  });
+}
