@@ -1,27 +1,27 @@
 # 文白对译标注系统（Wenbai）
 
-基于 Next.js App Router + Prisma + PostgreSQL 的文言文/白话文对译语料标注平台。
+基于 Next.js + Prisma + PostgreSQL 的文言文/白话文对译语料标注平台。
 
 ## 功能概览
 
 - 资料库（repo）管理：创建、重命名、删除
 - 条目（record）管理：文言文原文、白话文译文、元信息
-- 词元标注：词性（POS）、句法角色、文白词元对齐、词元关系分类
-- 支持自动保存、快捷键（Ctrl/⌘+S）
+- 词元（token）标注：词性（POS）、句法角色、文白词元对齐、词元关系分类
+- 支持自动保存、快捷键（Ctrl/⌘+S）等
 
 ## 开发环境
 
 ### 1. 克隆仓库
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/elecmonkey/wenbai
 cd wenbai
 ```
 
 ### 2. 安装依赖
 
 ```bash
-pnpm install
+pnpm i
 ```
 
 ### 3. 配置环境变量
