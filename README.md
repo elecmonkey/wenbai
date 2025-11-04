@@ -71,5 +71,5 @@ pnpm dev
 pnpm create-user -- --username admin --password "your-secret" --displayName "管理员"
 
 # 若用户已存在并需重置密码，可追加 --force
-pnpm create-user -- --username admin --password "new-secret" --force
+pnpm create-user -- --username admin --password "new-secret" --displayName "管理员" --force
 ```
