@@ -27,7 +27,7 @@ export function SaveStatusIndicator({
 
   return (
     <span
-      className={`inline-flex h-3 w-3 flex-shrink-0 items-center justify-center ${className}`}
+      className={`inline-flex h-3 w-3 shrink-0 items-center justify-center ${className}`}
       aria-label={label}
     >
       <span className={`h-2.5 w-2.5 rounded-full ${colorClass}`} />

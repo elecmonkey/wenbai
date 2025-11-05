@@ -40,7 +40,7 @@ export function RepoTabs() {
               return (
                 <div
                   key={repoId}
-                  className={`flex h-10 min-w-[160px] flex-shrink-0 items-center rounded-t border border-b-0 ${
+                  className={`flex h-10 min-w-40 shrink-0 items-center rounded-t border border-b-0 ${
                     isActive
                       ? 'border-blue-200 bg-blue-50 text-blue-700'
                       : 'border-transparent bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
@@ -68,12 +68,12 @@ export function RepoTabs() {
                       />
                     ) : (
                       <span
-                        className="mr-1 h-3 w-3 flex-shrink-0 rounded-full bg-emerald-200"
+                        className="mr-1 h-3 w-3 shrink-0 rounded-full bg-emerald-200"
                         aria-hidden
                       />
                     )
                   ) : (
-                    <span className="mr-1 h-3 w-3 flex-shrink-0" aria-hidden />
+                    <span className="mr-1 h-3 w-3 shrink-0" aria-hidden />
                   )}
                   <button
                     onClick={(event) => {
