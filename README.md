@@ -7,6 +7,8 @@
 - 资料库（repo）管理：创建、重命名、删除
 - 条目（record）管理：文言文原文、白话文译文、元信息
 - 词元（token）标注：词性（POS）、句法角色、文白词元对齐、词元关系分类
+- 词元注释：右键添加注释、悬浮显示 Tooltip、注释列表查看
+- 批量导入：支持 JSON 格式批量导入数据
 - 支持自动保存、快捷键（Ctrl/⌘+S）等
 
 ## 开发环境
@@ -72,6 +74,15 @@ pnpm create-user -- --username admin --password "your-secret" --displayName "管
 
 # 若用户已存在并需重置密码，可追加 --force
 pnpm create-user -- --username admin --password "new-secret" --displayName "管理员" --force
+```
+
+### 7. 批量导入数据
+
+项目提供批量导入工具，可将 JSON 格式的数据批量导入到指定资料库：
+
+```bash
+# 导入指定目录下的所有 JSON 文件到资料库
+pnpm data:import --data-path ./import-example --repo-name 论语
 ```
 
 ## Edge 与 Node 运行时切换指引
