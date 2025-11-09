@@ -15,6 +15,13 @@ import { DisabledHintButton } from './disabled-hint-button';
 import { IconRefresh } from '@/app/_components/icons/icon-refresh';
 
 export function RepoSidebar() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: detecting client-side mount for hydration-safe width
+    setMounted(true);
+  }, []);
+
   const {
     data: repos = [],
     isLoading,
@@ -30,11 +37,13 @@ export function RepoSidebar() {
   const openRepoTab = useDashboardStore((state) => state.openRepoTab);
   const closeRepoTab = useDashboardStore((state) => state.closeRepoTab);
   const requestSave = useDashboardStore((state) => state.requestSave);
+  const repoSidebarWidth = useDashboardStore((state) => state.repoSidebarWidth);
   const isAuthenticated = useAuthStore((state) => state.user !== null);
   const requireAuth = useAuthStore((state) => state.requireAuth);
   const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
 
   const sidebarRef = useRef<HTMLDivElement | null>(null);
+
   const [menuState, setMenuState] = useState<{
     repoId: number;
     anchor: { x: number; y: number };
@@ -231,11 +240,12 @@ export function RepoSidebar() {
   return (
     <aside
       ref={sidebarRef}
-      className="relative flex w-64 flex-col border-r border-neutral-200 bg-white"
+      style={{ width: mounted ? repoSidebarWidth : 256 }}
+      className="relative flex shrink-0 flex-col border-r border-neutral-200 bg-white"
     >
       <div className="flex items-center justify-between px-4 py-4">
         <h1 className="text-base font-semibold text-neutral-800">
-          文白翻译语料库
+          WENBAI
         </h1>
         <div className="flex items-center gap-2">
           <button

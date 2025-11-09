@@ -19,6 +19,13 @@ import { IconImport } from '@/app/_components/icons/icon-import';
 import type { RecordDetailPayload } from '@/types/dashboard';
 
 export function RecordListPanel() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: detecting client-side mount for hydration-safe width
+    setMounted(true);
+  }, []);
+
   const activeRepoId = useDashboardStore((state) => state.activeRepoId);
   const activeRecordId = useDashboardStore((state) => state.activeRecordId);
   const setActiveRecordId = useDashboardStore(
@@ -28,6 +35,7 @@ export function RecordListPanel() {
   const requestSave = useDashboardStore((state) => state.requestSave);
   const recordDirty = useDashboardStore((state) => state.recordDirty);
   const recordSaving = useDashboardStore((state) => state.recordSaving);
+  const recordListWidth = useDashboardStore((state) => state.recordListWidth);
   const isAuthenticated = useAuthStore((state) => state.user !== null);
   const requireAuth = useAuthStore((state) => state.requireAuth);
   const handleUnauthorized = useAuthStore((state) => state.handleUnauthorized);
@@ -47,6 +55,7 @@ export function RecordListPanel() {
   const createRecord = useCreateRecordMutation();
   const deleteRecord = useDeleteRecordMutation();
   const panelRef = useRef<HTMLDivElement | null>(null);
+
   const [menuState, setMenuState] = useState<{
     recordId: number;
     anchor: { x: number; y: number };
@@ -364,7 +373,8 @@ export function RecordListPanel() {
     <>
       <div
         ref={panelRef}
-        className="relative flex w-80 flex-col border-r border-neutral-200 bg-white"
+        style={{ width: mounted ? recordListWidth : 320 }}
+        className="relative flex shrink-0 flex-col border-r border-neutral-200 bg-white"
       >
         <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3 text-sm">
           <DisabledHintButton

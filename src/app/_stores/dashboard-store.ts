@@ -2,18 +2,38 @@
 
 import { create } from 'zustand';
 
+const REPO_SIDEBAR_WIDTH_KEY = 'wenbai-repo-sidebar-width';
+const RECORD_LIST_WIDTH_KEY = 'wenbai-record-list-width';
+
+const DEFAULT_REPO_SIDEBAR_WIDTH = 256; // w-64
+const DEFAULT_RECORD_LIST_WIDTH = 320; // w-80
+
+const getInitialWidth = (key: string, defaultWidth: number): number => {
+  if (typeof window === 'undefined') {
+    return defaultWidth;
+  }
+  const stored = localStorage.getItem(key);
+  if (!stored) return defaultWidth;
+  const parsed = Number.parseInt(stored, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultWidth;
+};
+
 type DashboardState = {
   openRepoIds: number[];
   activeRepoId: number | null;
   activeRecordId: number | null;
   recordDirty: boolean;
   recordSaving: boolean;
+  repoSidebarWidth: number;
+  recordListWidth: number;
   openRepoTab: (repoId: number) => void;
   activateRepoTab: (repoId: number) => void;
   closeRepoTab: (repoId: number) => void;
   setActiveRecordId: (id: number | null) => void;
   setRecordDirty: (dirty: boolean) => void;
   setRecordSaving: (saving: boolean) => void;
+  setRepoSidebarWidth: (width: number) => void;
+  setRecordListWidth: (width: number) => void;
   initialize: (
     openRepoIds: number[],
     activeRepoId: number | null,
@@ -32,6 +52,8 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
   recordDirty: false,
   recordSaving: false,
   saveHandler: null,
+  repoSidebarWidth: getInitialWidth(REPO_SIDEBAR_WIDTH_KEY, DEFAULT_REPO_SIDEBAR_WIDTH),
+  recordListWidth: getInitialWidth(RECORD_LIST_WIDTH_KEY, DEFAULT_RECORD_LIST_WIDTH),
   openRepoTab: (repoId) =>
     set((state) => {
       if (state.openRepoIds.includes(repoId)) {
@@ -104,6 +126,18 @@ export const useDashboardStore = create<DashboardState>()((set, get) => ({
   setActiveRecordId: (id) => set({ activeRecordId: id, recordDirty: false }),
   setRecordDirty: (dirty) => set({ recordDirty: dirty }),
   setRecordSaving: (saving) => set({ recordSaving: saving }),
+  setRepoSidebarWidth: (width) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(REPO_SIDEBAR_WIDTH_KEY, width.toString());
+    }
+    set({ repoSidebarWidth: width });
+  },
+  setRecordListWidth: (width) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(RECORD_LIST_WIDTH_KEY, width.toString());
+    }
+    set({ recordListWidth: width });
+  },
   initialize: (openRepoIds, activeRepoId, activeRecordId) =>
     set({
       openRepoIds,
