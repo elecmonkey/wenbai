@@ -37,7 +37,8 @@ export const recordImportJsonSchema = `{
         "id": { "type": "integer", "minimum": 1 },
         "word": { "type": "string", "minLength": 1 },
         "pos": { "type": ["string", "null"] },
-        "syntax_role": { "type": ["string", "null"] }
+        "syntax_role": { "type": ["string", "null"] },
+        "annotation": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     },
@@ -60,35 +61,36 @@ export const recordImportPrompt = `请根据以下要求生成严格符合 JSON 
    - source：文言原文全文（字符串，必填）。
    - target：对应的白话文译文（字符串，可为空但建议填写）。
    - meta：出处或备注（字符串，可为空）。
-   - source_tokens：按原文顺序的字词分词数组，每项包含 id(从1开始递增整数)、word(字符串)、pos(词性，可为 null)、syntax_role(句法角色，可为 null)。
+   - source_tokens：按原文顺序的字词分词数组，每项包含 id(从1开始递增整数)、word(字符串)、pos(词性，可为 null)、syntax_role(句法角色，可为 null)、annotation(注释，可为 null)。
    - target_tokens：按译文顺序的字词分词数组，字段同上。
    - alignment：数组，描述 source_tokens 与 target_tokens 的对应关系，每项包含 source_id、target_id、relation_type（字符串说明关系）。
 3. source_tokens 拼接后的内容必须与 source 完全一致；target_tokens 拼接后需与 target 完全一致（忽略空 target 的情况）。
 4. 确保 source_id、target_id 均引用各自 token 列表中存在的 id。
-5. 推荐取值：pos 可选“名词”“动词”“形容词”“副词”“代词”“数词”“量词”“连词”“介词”“助词”“叹词”“拟声词”；syntax_role 可选“主语”“谓语”“宾语”“定语”“状语”“补语”“并列”“引用”；relation_type 可选“语义”“字面”“语法”。这些值仅作参考，若语料需要可填写其他明确的术语，但请避免为同一语法功能写出意思相同的多种表达。标点符号建议单独成词，但不设置词性、句法角色或对齐关系。
+5. 推荐取值：pos 可选"名词""动词""形容词""副词""代词""数词""量词""连词""介词""助词""叹词""拟声词"；syntax_role 可选"主语""谓语""宾语""定语""状语""补语""并列""引用"；relation_type 可选"语义""字面""语法"。这些值仅作参考，若语料需要可填写其他明确的术语，但请避免为同一语法功能写出意思相同的多种表达。标点符号建议单独成词，但不设置词性、句法角色或对齐关系。
+6. **注释使用原则**：annotation 字段用于解释词元的特殊含义、用典出处、文化背景等。**请保持克制，仅在必要时使用**，如：用典典故、特殊文化含义、通假字等场景。大多数普通词元应将 annotation 设为 null。避免为常见词汇添加注释。
 示例：
 {
   "id": 8,
   "source": "子曰：“不舍昼夜。”",
-  "target": "孔子说：“日夜不停”。",
+  "target": "孔子说：“日夜不停。”",
   "meta": "论语·子罕",
   "source_tokens": [
-    { "id": 1, "word": "子", "pos": null, "syntax_role": null },
-    { "id": 2, "word": "曰", "pos": null, "syntax_role": null },
-    { "id": 3, "word": "：“", "pos": null, "syntax_role": null },
-    { "id": 4, "word": "不", "pos": null, "syntax_role": null },
-    { "id": 5, "word": "舍", "pos": null, "syntax_role": null },
-    { "id": 6, "word": "昼夜", "pos": null, "syntax_role": null },
-    { "id": 7, "word": "。”", "pos": null, "syntax_role": null }
+    { "id": 1, "word": "子", "pos": null, "syntax_role": null, "annotation": "指孔子" },
+    { "id": 2, "word": "曰", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 3, "word": "：“", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 4, "word": "不", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 5, "word": "舍", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 6, "word": "昼夜", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 7, "word": "。”", "pos": null, "syntax_role": null, "annotation": null }
   ],
   "target_tokens": [
-    { "id": 1, "word": "孔子", "pos": null, "syntax_role": null },
-    { "id": 2, "word": "说", "pos": null, "syntax_role": null },
-    { "id": 3, "word": "：“", "pos": null, "syntax_role": null },
-    { "id": 4, "word": "日夜", "pos": null, "syntax_role": null },
-    { "id": 5, "word": "不", "pos": null, "syntax_role": null },
-    { "id": 6, "word": "停", "pos": null, "syntax_role": null },
-    { "id": 7, "word": "”。", "pos": null, "syntax_role": null }
+    { "id": 1, "word": "孔子", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 2, "word": "说", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 3, "word": "：“", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 4, "word": "日夜", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 5, "word": "不", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 6, "word": "停", "pos": null, "syntax_role": null, "annotation": null },
+    { "id": 7, "word": "”。", "pos": null, "syntax_role": null, "annotation": null }
   ],
   "alignment": [
     { "source_id": 1, "target_id": 1, "relation_type": "语义" },
@@ -143,11 +145,12 @@ export function validatePayload(raw: string): ValidationResult {
       if (typeof token !== 'object' || token === null) {
         throw new Error(`${name}[${index}] 必须是对象。`);
       }
-      const { id, word, pos, syntax_role } = token as {
+      const { id, word, pos, syntax_role, annotation } = token as {
         id?: unknown;
         word?: unknown;
         pos?: unknown;
         syntax_role?: unknown;
+        annotation?: unknown;
       };
       if (typeof id !== 'number') {
         throw new Error(`${name}[${index}].id 必须是数字。`);
@@ -161,11 +164,15 @@ export function validatePayload(raw: string): ValidationResult {
       if (syntax_role != null && typeof syntax_role !== 'string') {
         throw new Error(`${name}[${index}].syntax_role 必须是字符串或 null。`);
       }
+      if (annotation != null && typeof annotation !== 'string') {
+        throw new Error(`${name}[${index}].annotation 必须是字符串或 null。`);
+      }
       return {
         id,
         word,
         pos: pos ?? null,
         syntax_role: syntax_role ?? null,
+        annotation: annotation ?? null,
       };
     });
   };
