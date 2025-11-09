@@ -128,11 +128,23 @@ export function RecordEditor() {
       );
       setSourceValue(displaySource);
       setTargetValue(displayTarget);
+
+      // 确保旧数据的 token 也有 annotation 字段
+      const normalizeTokens = (tokens: Token[]) =>
+        tokens.map(token => ({
+          ...token,
+          annotation: token.annotation ?? null,
+        }));
+
       setSourceTokens(
-        detail.source_tokens ?? buildTokensFromValue(displaySource, []),
+        detail.source_tokens
+          ? normalizeTokens(detail.source_tokens)
+          : buildTokensFromValue(displaySource, []),
       );
       setTargetTokens(
-        detail.target_tokens ?? buildTokensFromValue(displayTarget, []),
+        detail.target_tokens
+          ? normalizeTokens(detail.target_tokens)
+          : buildTokensFromValue(displayTarget, []),
       );
       setAlignment(detail.alignment ?? []);
       setRecordDirty(false);
