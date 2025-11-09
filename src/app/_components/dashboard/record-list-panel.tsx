@@ -41,6 +41,7 @@ export function RecordListPanel() {
     isError,
     error,
     refetch,
+    isFetching,
   } = useRecordsQuery(activeRepoId);
 
   const createRecord = useCreateRecordMutation();
@@ -376,7 +377,7 @@ export function RecordListPanel() {
           </DisabledHintButton>
           <button
             onClick={handleRefresh}
-            disabled={isLoading}
+            disabled={isFetching}
             className="flex h-8 w-8 items-center justify-center rounded border border-neutral-300 text-neutral-600 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
             aria-label="刷新条目列表"
           >
