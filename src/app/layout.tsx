@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "文白翻译语料库",
   description:
     "支持资料库管理、文白词元标注与对齐的标注平台。",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
