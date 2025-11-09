@@ -11,6 +11,10 @@ import {
   normalizeRelationValue,
   normalizeTokenAttribute,
 } from './token-alignment-utils';
+import { TokenTooltip } from './token-tooltip';
+import { AnnotationModal } from './annotation-modal';
+import { AnnotationContextMenu } from './annotation-context-menu';
+import { AnnotationList } from './annotation-list';
 
 export type TokenAlignmentEditorProps = {
   sourceTokens: Token[];
@@ -49,6 +53,18 @@ export function TokenAlignmentEditor({
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [lineSegments, setLineSegments] = useState<LineSegment[]>([]);
   const isReadOnly = readOnly;
+
+  // 注释功能状态
+  const [annotationMenuState, setAnnotationMenuState] = useState<{
+    type: 'source' | 'target';
+    index: number;
+    position: { x: number; y: number };
+  } | null>(null);
+  const [editingAnnotation, setEditingAnnotation] = useState<{
+    type: 'source' | 'target';
+    index: number;
+    token: Token;
+  } | null>(null);
 
   const computeLayout = useCallback(() => {
     const scrollContainer = scrollContainerRef.current;
@@ -104,6 +120,28 @@ export function TokenAlignmentEditor({
     observer.observe(content);
     return () => observer.disconnect();
   }, [computeLayout]);
+
+  // 关闭右键菜单的逻辑
+  useEffect(() => {
+    if (!annotationMenuState) return;
+
+    const handleClose = () => setAnnotationMenuState(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAnnotationMenuState(null);
+      }
+    };
+
+    window.addEventListener('click', handleClose);
+    window.addEventListener('contextmenu', handleClose);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('click', handleClose);
+      window.removeEventListener('contextmenu', handleClose);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [annotationMenuState]);
 
   const toggleAlignment = useCallback(
     (sourceId: number, targetId: number) => {
@@ -206,6 +244,69 @@ export function TokenAlignmentEditor({
     [alignment, onAlignmentChange],
   );
 
+  // 注释相关的事件处理
+  const handleTokenContextMenu = useCallback(
+    (
+      event: React.MouseEvent,
+      type: 'source' | 'target',
+      index: number,
+    ) => {
+      if (isReadOnly) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setAnnotationMenuState({
+        type,
+        index,
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [isReadOnly],
+  );
+
+  const handleAddEditAnnotation = useCallback(() => {
+    if (!annotationMenuState) return;
+    const { type, index } = annotationMenuState;
+    const token =
+      type === 'source' ? sourceTokens[index] : targetTokens[index];
+    if (!token) return;
+    setEditingAnnotation({ type, index, token });
+  }, [annotationMenuState, sourceTokens, targetTokens]);
+
+  const handleRemoveAnnotation = useCallback(() => {
+    if (!annotationMenuState) return;
+    const { type, index } = annotationMenuState;
+    const token =
+      type === 'source' ? sourceTokens[index] : targetTokens[index];
+    if (!token) return;
+
+    const updatedToken = { ...token, annotation: null };
+    if (type === 'source') {
+      onUpdateSourceToken(index, updatedToken);
+    } else {
+      onUpdateTargetToken(index, updatedToken);
+    }
+  }, [
+    annotationMenuState,
+    sourceTokens,
+    targetTokens,
+    onUpdateSourceToken,
+    onUpdateTargetToken,
+  ]);
+
+  const handleSaveAnnotation = useCallback(
+    (annotation: string | null) => {
+      if (!editingAnnotation) return;
+      const { type, index, token } = editingAnnotation;
+      const updatedToken = { ...token, annotation };
+      if (type === 'source') {
+        onUpdateSourceToken(index, updatedToken);
+      } else {
+        onUpdateTargetToken(index, updatedToken);
+      }
+    },
+    [editingAnnotation, onUpdateSourceToken, onUpdateTargetToken],
+  );
+
   return (
     <div className="flex flex-col gap-6 rounded-lg border border-neutral-200 bg-white p-4">
       <div className="text-xs uppercase tracking-wide text-neutral-500">
@@ -249,6 +350,7 @@ export function TokenAlignmentEditor({
               ) : (
                 sourceTokens.map((token, index) => {
                   const tokenId = getTokenId(token, index);
+                  const hasAnnotation = token.annotation && token.annotation.trim().length > 0;
                   return (
                     <div key={tokenId} className="flex flex-col items-center gap-2">
                       <div className="flex flex-col gap-2">
@@ -281,16 +383,21 @@ export function TokenAlignmentEditor({
                           className="w-16"
                         />
                       </div>
-                      <button
-                        ref={(element) => {
-                          sourceRefs.current[tokenId] = element;
-                        }}
-                        onClick={() => handleSourceClick(tokenId)}
-                        className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightSource(tokenId)}`}
-                        aria-disabled={isReadOnly}
-                      >
-                        {token.word || `词元 ${index + 1}`}
-                      </button>
+                      <TokenTooltip annotation={token.annotation}>
+                        <button
+                          ref={(element) => {
+                            sourceRefs.current[tokenId] = element;
+                          }}
+                          onClick={() => handleSourceClick(tokenId)}
+                          onContextMenu={(e) => handleTokenContextMenu(e, 'source', index)}
+                          className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightSource(tokenId)} ${
+                            hasAnnotation ? 'ring-2 ring-amber-400 ring-offset-1' : ''
+                          }`}
+                          aria-disabled={isReadOnly}
+                        >
+                          {token.word || `词元 ${index + 1}`}
+                        </button>
+                      </TokenTooltip>
                     </div>
                   );
                 })
@@ -303,18 +410,24 @@ export function TokenAlignmentEditor({
               ) : (
                 targetTokens.map((token, index) => {
                   const tokenId = getTokenId(token, index);
+                  const hasAnnotation = token.annotation && token.annotation.trim().length > 0;
                   return (
                     <div key={tokenId} className="flex flex-col items-center gap-2">
-                      <button
-                        ref={(element) => {
-                          targetRefs.current[tokenId] = element;
-                        }}
-                        onClick={() => handleTargetClick(tokenId)}
-                        className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightTarget(tokenId)}`}
-                        aria-disabled={isReadOnly}
-                      >
-                        {token.word || `词元 ${index + 1}`}
-                      </button>
+                      <TokenTooltip annotation={token.annotation}>
+                        <button
+                          ref={(element) => {
+                            targetRefs.current[tokenId] = element;
+                          }}
+                          onClick={() => handleTargetClick(tokenId)}
+                          onContextMenu={(e) => handleTokenContextMenu(e, 'target', index)}
+                          className={`rounded-full border px-3 py-2 text-sm font-medium transition ${highlightTarget(tokenId)} ${
+                            hasAnnotation ? 'ring-2 ring-amber-400 ring-offset-1' : ''
+                          }`}
+                          aria-disabled={isReadOnly}
+                        >
+                          {token.word || `词元 ${index + 1}`}
+                        </button>
+                      </TokenTooltip>
                       <div className="flex flex-col gap-2">
                         <FlexibleOptionInput
                           value={token.pos ?? null}
@@ -416,6 +529,32 @@ export function TokenAlignmentEditor({
           })
         )}
       </div>
+
+      <AnnotationList sourceTokens={sourceTokens} targetTokens={targetTokens} />
+
+      {annotationMenuState && (() => {
+        const { type, index } = annotationMenuState;
+        const token = type === 'source' ? sourceTokens[index] : targetTokens[index];
+        return token ? (
+          <AnnotationContextMenu
+            position={annotationMenuState.position}
+            hasAnnotation={!!token.annotation && token.annotation.trim().length > 0}
+            onAddEdit={handleAddEditAnnotation}
+            onRemove={handleRemoveAnnotation}
+            onClose={() => setAnnotationMenuState(null)}
+          />
+        ) : null;
+      })()}
+
+      {editingAnnotation && (
+        <AnnotationModal
+          tokenWord={editingAnnotation.token.word || `词元 ${editingAnnotation.index + 1}`}
+          tokenType={editingAnnotation.type}
+          initialAnnotation={editingAnnotation.token.annotation}
+          onSave={handleSaveAnnotation}
+          onClose={() => setEditingAnnotation(null)}
+        />
+      )}
     </div>
   );
 }

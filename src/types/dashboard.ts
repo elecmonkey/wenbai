@@ -15,6 +15,7 @@ export type Token = {
   word: string;
   pos?: string | null;
   syntax_role?: string | null;
+  annotation?: string | null;
 };
 
 export type Alignment = {

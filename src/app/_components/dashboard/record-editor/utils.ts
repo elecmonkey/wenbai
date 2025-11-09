@@ -25,6 +25,7 @@ export const buildTokensFromValue = (value: string, previous: Token[]) => {
       word,
       pos: prev?.pos ?? null,
       syntax_role: prev?.syntax_role ?? null,
+      annotation: prev?.annotation ?? null,
     };
   });
 };
