@@ -34,13 +34,13 @@ pnpm i
 cp .env.example .env
 ```
 
-将 `DATABASE_URL` 替换为 Prisma Accelerate 提供的连接串，例如：
+将 `DATABASE_URL` 替换为 PostgreSQL 连接字符串，例如：
 
 ```
-DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=<your-api-key>"
+DATABASE_URL="postgres://user:password@host:5432/db_name"
 ```
 
-> 提示：项目默认使用 Prisma Accelerate + Edge Runtime，确保已在 Prisma 控制台创建 API Key。
+> 提示：项目已升级至 Prisma 7，使用 `@prisma/adapter-pg` + Node.js Runtime 连接数据库。请确保配置了标准的 PostgreSQL 连接串。
 
 ### 4. 数据库处理
 
@@ -55,6 +55,8 @@ pnpm prisma db push
 ```bash
 pnpm prisma:generate
 ```
+
+> 注意：Prisma Client 会生成到 `src/generated/prisma/client` 目录，并提交到代码库中。
 
 ### 5. 运行开发服务器
 
@@ -85,46 +87,15 @@ pnpm create-user -- --username admin --password "new-secret" --displayName "管�
 pnpm data:import --data-path ./import-example --repo-name 论语
 ```
 
-## Edge 与 Node 运行时切换指引
+## 部署说明
 
-默认部署使用 **Prisma Accelerate + Edge Runtime**，以获取更小的 Serverless 体积。如果你在本地或目标平台不便使用 Accelerate，可按以下步骤切回 Node Runtime：
+项目配置为 **Node.js Runtime**。
 
-1. **恢复 Prisma Node 引擎**
-   - 将 `prisma/schema.prisma` 的 `generator client` 段落改回默认（删除 `engineType = "edge"`）。
-   - 运行 `pnpm add pg @prisma/adapter-pg` 安装 Postgres 驱动。
-   - 更新 `src/lib/prisma.ts` 为：
-     ```ts
-     import { PrismaClient } from '@prisma/client';
-     import { PrismaPg } from '@prisma/adapter-pg';
-     import { Pool } from 'pg';
+由于使用了 Prisma Adapter (`@prisma/adapter-pg`) 直连数据库，**不支持** Edge Runtime。
 
-     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-     const adapter = new PrismaPg(pool);
+### 环境变量
 
-     const globalForPrisma = globalThis as { prisma?: PrismaClient };
-     export const prisma =
-       globalForPrisma.prisma ??
-       new PrismaClient({ adapter });
+确保在部署平台配置以下环境变量：
 
-     if (process.env.NODE_ENV !== 'production') {
-       globalForPrisma.prisma = prisma;
-     }
-     ```
-   - 将 `.env` / `README` 中的连接串改回标准 `postgresql://` 形式。
-   - 清理 Edge runtime 声明：删除各 API 和 `src/app/page.tsx` 中的 `export const runtime = 'edge'`。
-
-2. **强制接口运行在 Node Runtime**
-   - 某些 API 需要 Node 专用依赖（例如 `/api/auth/login` 使用 `bcryptjs`），即使全局采用 Edge，也应在文件中声明：
-     ```ts
-     export const runtime = 'nodejs';
-     ```
-   - 在完全回退到 Node 方案时，可为所有使用 Prisma 的路由与页面加上此声明，避免剩余页面受影响。
-
-3. **重新生成 Prisma Client**
-   - 切回 Node 后运行：
-     ```bash
-     pnpm prisma generate
-     ```
-     如需重新应用数据库结构，仍使用 `pnpm prisma db push`。
-
-切换为 Node Runtime 后，Serverless 函数体积会增加，但可以在无法使用 Accelerate 或需要直连数据库时使用。记得在部署前确认 `.env`、依赖和 `runtime` 声明与当前模式一致。
+- `DATABASE_URL`: PostgreSQL 数据库连接字符串
+- `AUTH_SECRET`: 用于签名 JWT 的密钥
