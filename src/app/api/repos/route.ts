@@ -1,14 +1,14 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../../generated/prisma/client/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export const runtime = "edge";
+export const runtime = 'nodejs';
 import { getAuthUser } from "@/lib/auth";
 
 export async function GET() {
   try {
     const repos = await prisma.repo.findMany({
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: { id: true, name: true },
       orderBy: { id: "asc" },
     });

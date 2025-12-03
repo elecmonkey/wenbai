@@ -1,16 +1,18 @@
 import 'dotenv/config';
 import { readdir, readFile } from 'fs/promises';
 import { join, extname } from 'path';
-import { PrismaClient, Prisma } from '@prisma/client';
-import { withAccelerate } from '@prisma/extension-accelerate';
+import { PrismaClient, Prisma } from '../src/generated/prisma/client/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required to run this script.');
 }
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-}).$extends(withAccelerate());
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
 
 type Options = {
   'data-path'?: string;
@@ -106,7 +108,6 @@ async function main() {
   // 确保资料库存在
   let repo = await prisma.repo.findUnique({
     where: { name: repoName },
-    cacheStrategy: { ttl: 0 },
   });
 
   if (!repo) {
@@ -148,7 +149,6 @@ async function main() {
           repoId: repo.id,
           source: record.source,
         },
-        cacheStrategy: { ttl: 0 },
       });
 
       if (existing) {

@@ -1,30 +1,14 @@
-import { PrismaClient as EdgePrismaClient } from '@prisma/client/edge';
-import { withAccelerate } from '@prisma/extension-accelerate';
+import { PrismaClient } from '../generated/prisma/client/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
-const datasourceUrl = process.env.DATABASE_URL;
-if (!datasourceUrl) {
-  throw new Error('DATABASE_URL is not set. Prisma Accelerate requires a connection URL.');
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL is not set.');
 }
 
-function createPrismaClient() {
-  return new EdgePrismaClient({
-    datasourceUrl,
-  }).$extends(withAccelerate());
-}
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
-type AcceleratedPrismaClient = ReturnType<typeof createPrismaClient>;
-
-type GlobalWithPrisma = typeof globalThis & {
-  prisma?: AcceleratedPrismaClient;
-};
-
-const globalForPrisma = globalThis as GlobalWithPrisma;
-
-const acceleratedClient: AcceleratedPrismaClient =
-  globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = acceleratedClient;
-}
-
-export const prisma = acceleratedClient;
+export const prisma = new PrismaClient({ adapter });

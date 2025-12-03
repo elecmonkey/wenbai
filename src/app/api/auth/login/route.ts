@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { AUTH_COOKIE_BASE, SEVEN_DAYS_IN_SECONDS, signAuthToken } from "@/lib/auth";
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { username },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: {
         id: true,
         username: true,

@@ -106,7 +106,7 @@ export async function getAuthUser(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: { id: true, username: true, displayName: true },
     });
 

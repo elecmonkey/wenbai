@@ -1,9 +1,9 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../../../generated/prisma/client/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
-export const runtime = "edge";
+export const runtime = 'nodejs';
 
 type RouteContext = {
   params: Promise<{
@@ -49,7 +49,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
     const currentRepo = await prisma.repo.findUnique({
       where: { id: repoId },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: { id: true, name: true },
     });
 
@@ -69,7 +69,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         name,
         NOT: { id: repoId },
       },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: { id: true },
     });
 

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../../../../../generated/prisma/client/client";
 import {
   NextResponse,
   type NextRequest,
@@ -6,7 +6,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
-export const runtime = "edge";
+export const runtime = 'nodejs';
 
 type RouteContext = {
   params: Promise<{
@@ -39,7 +39,7 @@ export async function GET(
   try {
     const record = await prisma.record.findFirst({
       where: { id: recordId, repoId },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: {
         id: true,
         source: true,
@@ -161,7 +161,7 @@ export async function PUT(
 
     const record = await prisma.record.findFirst({
       where: { id: recordId, repoId },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: { id: true },
     });
 
@@ -252,7 +252,7 @@ export async function DELETE(
   try {
     const record = await prisma.record.findFirst({
       where: { id: recordId, repoId },
-      cacheStrategy: { ttl: 0 },
+      // cacheStrategy: { ttl: 0 },
       select: { id: true },
     });
 

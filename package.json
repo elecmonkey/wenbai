@@ -1,14 +1,15 @@
 {
   "name": "wenbai",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --no-engine && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint src --config eslint.config.mjs",
     "type-check": "tsc --noEmit",
-    "prisma:generate": "prisma generate --no-engine",
+    "prisma:generate": "prisma generate",
     "prisma:db-push": "prisma db push",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -19,12 +20,14 @@
     "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
-    "@prisma/client": "^6.18.0",
-    "@prisma/extension-accelerate": "^2.0.2",
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.0.1",
+    "@prisma/extension-accelerate": "^3.0.0",
     "@tanstack/react-query": "^5.90.6",
     "bcryptjs": "^3.0.3",
     "jose": "^6.1.0",
     "next": "16.0.1",
+    "pg": "^8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "zustand": "^5.0.8"
@@ -41,7 +44,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.1",
-    "prisma": "^6.18.0",
+    "prisma": "^7.0.1",
     "tailwindcss": "^4.1.16",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
